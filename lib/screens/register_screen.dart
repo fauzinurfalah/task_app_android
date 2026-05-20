@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'register_screen.dart';
+import 'login_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -32,9 +34,9 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF48FB1), // pink muda atas
-              Color(0xFFF8BBD9), // pink lebih terang tengah
-              Color(0xFFFCE4EC), // pink sangat terang bawah
+              Color(0xFFF48FB1),
+              Color(0xFFF8BBD9),
+              Color(0xFFFCE4EC),
             ],
             stops: [0.0, 0.5, 1.0],
           ),
@@ -42,7 +44,8 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0, vertical: 32.0),
               child: Container(
                 width: double.infinity,
                 constraints: const BoxConstraints(maxWidth: 360),
@@ -58,7 +61,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 36.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 28.0, vertical: 36.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,10 +77,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Judul Login
+                      // Judul Register
                       const Center(
                         child: Text(
-                          'Login',
+                          'Register',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
@@ -100,6 +104,26 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
+                      // Label Username
+                      const Text(
+                        'Username :',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF444444),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Input Username
+                      TextField(
+                        controller: _usernameController,
+                        keyboardType: TextInputType.text,
+                        decoration: _inputDecoration(),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 20),
+
                       // Label E-mail
                       const Text(
                         'E-mail :',
@@ -115,39 +139,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: const Color(0xFFF5F5F5),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFE0E0E0),
-                              width: 1,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFE91E8C),
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
+                        decoration: _inputDecoration(),
                         style: const TextStyle(fontSize: 14),
                       ),
                       const SizedBox(height: 20),
 
-                      // Label Password
+                      // Label Buat Password
                       const Text(
-                        'Password :',
+                        'Buat Password :',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -160,31 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: const Color(0xFFF5F5F5),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFE0E0E0),
-                              width: 1,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFE91E8C),
-                              width: 1.5,
-                            ),
-                          ),
+                        decoration: _inputDecoration(
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
@@ -202,111 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         style: const TextStyle(fontSize: 14),
                       ),
-
-                      // Lupa Password
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            // TODO: navigasi ke halaman lupa password
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.only(top: 4, right: 0),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            'lupa password?',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF888888),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Tombol MASUK
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // TODO: logic login
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE91E8C),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'MASUK',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Tombol Masuk dengan Google
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            // TODO: logic login Google
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Color(0xFFE0E0E0),
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            backgroundColor: Colors.white,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Google "G" logo resmi
-                              SvgPicture.asset(
-                                'assets/images/google_logo.svg',
-                                width: 22,
-                                height: 22,
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'Masuk dengan Google',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF444444),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Belum punya akun?
-                      Center(
-                        child: Text(
-                          'Belum punya akun?',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 24),
 
                       // Tombol DAFTAR
                       SizedBox(
@@ -314,12 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         height: 48,
                         child: ElevatedButton(
                           onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RegisterScreen(),
-                              ),
-                            );
+                            // TODO: logic register
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE91E8C),
@@ -339,6 +205,92 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+
+                      // Tombol Daftar dengan Google
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            // TODO: logic register Google
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Color(0xFFE0E0E0),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            backgroundColor: Colors.white,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SvgPicture.asset(
+                                'assets/images/google_logo.svg',
+                                width: 22,
+                                height: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                'Daftar dengan Google',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF444444),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Sudah punya akun?
+                      Center(
+                        child: Text(
+                          'Sudah punya akun?',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Tombol MASUK
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const LoginScreen(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE91E8C),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'MASUK',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -349,5 +301,35 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
 
+  /// Helper untuk dekorasi input field yang konsisten
+  InputDecoration _inputDecoration({Widget? suffixIcon}) {
+    return InputDecoration(
+      filled: true,
+      fillColor: const Color(0xFFF5F5F5),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 14,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(
+          color: Color(0xFFE0E0E0),
+          width: 1,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(
+          color: Color(0xFFE91E8C),
+          width: 1.5,
+        ),
+      ),
+      suffixIcon: suffixIcon,
+    );
+  }
+}
