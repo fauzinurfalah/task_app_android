@@ -1,70 +1,51 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-
-  final String baseUrl = "http://10.0.2.2:8000/api";
+  final _supabase = Supabase.instance.client;
 
   Future<bool> login(String email, String password) async {
-
-    final response = await http.post(
-      Uri.parse('$baseUrl/login'),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-
-      final data = jsonDecode(response.body);
-
-      SharedPreferences prefs =
-          await SharedPreferences.getInstance();
-
-      await prefs.setString('token', data['token']);
-      await prefs.setString('name', data['user']?['name'] ?? data['name'] ?? '');
-
-      return true;
+    try {
+      // Supabase Auth handles login securely and creates a session.
+      final response = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      return response.session != null;
+    } catch (e) {
+      print('Login error: $e');
+      return false;
     }
-
-    return false;
   }
 
   Future<bool> register(String name, String email, String password) async {
+    try {
+      final response = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
 
-    final response = await http.post(
-      Uri.parse('$baseUrl/register'),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'name': name,
-        'email': email,
-        'password': password,
-        'password_confirmation': password,
-      }),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-
-      final data = jsonDecode(response.body);
-
-      SharedPreferences prefs =
-          await SharedPreferences.getInstance();
-
-      await prefs.setString('token', data['token']);
-      await prefs.setString('name', data['user']?['name'] ?? data['name'] ?? name);
-
-      return true;
+      final user = response.user;
+      if (user != null) {
+        // Insert user details into the 'users' table including the password
+        await _supabase.from('users').insert({
+          'id': user.id,
+          'name': name,
+          'email': email,
+          'password': password,
+          'photo_url': null,
+          'points': 0,
+        });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Register error: $e');
+      return false;
     }
+  }
 
-    return false;
+  Future<void> logout() async {
+    await _supabase.auth.signOut();
   }
 }
+

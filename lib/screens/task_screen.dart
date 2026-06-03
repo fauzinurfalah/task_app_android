@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import '../services/task_service.dart';
+import '../services/user_service.dart';
 import 'add_task_screen.dart';
 import 'calendar_screen.dart';
+import 'dashboard_screen.dart';
+import 'social_screen.dart';
+import 'profile_screen.dart';
 
 class TaskScreen extends StatefulWidget {
   const TaskScreen({super.key});
@@ -23,12 +26,9 @@ class _TaskScreenState extends State<TaskScreen> {
   }
 
   Future<void> _loadTasks() async {
-    try {
-      final tasks = await TaskService().getTasks();
-      if (mounted) setState(() { _apiTasks = tasks; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() { _loading = false; });
-    }
+    // TaskService API (Laravel) belum terhubung ke Supabase,
+    // langsung pakai dummy data agar tidak loading lama.
+    if (mounted) setState(() { _loading = false; });
   }
 
   // ── Data ────────────────────────────────────────────────────────────────────
@@ -133,11 +133,11 @@ class _TaskScreenState extends State<TaskScreen> {
   // ── Top Bar ──────────────────────────────────────────────────────────────────
 
   Widget _buildTopBar() {
+    final photoUrl = UserService().photoUrl;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          const SizedBox(width: 26), // balance right side
           const Expanded(
             child: Center(
               child: Text(
@@ -170,21 +170,20 @@ class _TaskScreenState extends State<TaskScreen> {
             ],
           ),
           const SizedBox(width: 12),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFF5C5C5C),
-            child: ClipOval(
-              child: Image.network(
-                'https://i.pravatar.cc/36?img=12',
-                width: 36,
-                height: 36,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: const Color(0xFF5C5C5C),
+              backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                  ? NetworkImage(photoUrl)
+                  : null,
+              child: (photoUrl == null || photoUrl.isEmpty)
+                  ? const Icon(Icons.person, color: Colors.white, size: 18)
+                  : null,
             ),
           ),
         ],
@@ -548,11 +547,19 @@ class _TaskScreenState extends State<TaskScreen> {
           return GestureDetector(
             onTap: () {
               if (i == 0) {
-                Navigator.pop(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                );
               } else if (i == 2) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                );
+              } else if (i == 3) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SocialScreen()),
                 );
               }
             },

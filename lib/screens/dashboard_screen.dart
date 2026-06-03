@@ -1,11 +1,14 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/task_service.dart';
+import '../services/user_service.dart';
 import 'login_screen.dart';
 import 'task_screen.dart';
 import 'add_task_screen.dart';
 import 'calendar_screen.dart';
+import 'profile_screen.dart';
+import 'social_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,38 +19,44 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
-  String _username = 'Fauzi';
   List _tasks = [];
   bool _loadingTasks = true;
 
+  final _userService = UserService();
   static const _pink = Color(0xFFE91E8C);
+
+  String get _username => _userService.name.isNotEmpty ? _userService.name : 'User';
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
+    _userService.addListener(_onUserChanged);
+    _userService.loadUser();
     _loadTasks();
   }
 
-  Future<void> _loadUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _username = prefs.getString('name') ?? 'Fauzi';
-    });
+  @override
+  void dispose() {
+    _userService.removeListener(_onUserChanged);
+    super.dispose();
+  }
+
+  void _onUserChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadTasks() async {
-    try {
-      final tasks = await TaskService().getTasks();
-      if (mounted) setState(() { _tasks = tasks; _loadingTasks = false; });
-    } catch (_) {
-      if (mounted) setState(() { _loadingTasks = false; });
+    // Bypass HTTP call to Laravel to avoid timeout/slow loading
+    if (mounted) {
+      setState(() {
+        _tasks = _dummyTasks;
+        _loadingTasks = false;
+      });
     }
   }
 
   void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await Supabase.instance.client.auth.signOut();
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
@@ -142,26 +151,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(width: 12),
         GestureDetector(
-          onTap: _logout,
-          child: CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFF5C5C5C),
-            child: ClipOval(
-              child: Image.network(
-                'https://i.pravatar.cc/36?img=12',
-                width: 36,
-                height: 36,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          },
+          child: _buildAvatarWidget(),
         ),
       ],
+    );
+  }
+
+  Widget _buildAvatarWidget({double radius = 18}) {
+    final photoUrl = _userService.photoUrl;
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: const Color(0xFF5C5C5C),
+      backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+          ? NetworkImage(photoUrl)
+          : null,
+      child: (photoUrl == null || photoUrl.isEmpty)
+          ? Icon(Icons.person, color: Colors.white, size: radius)
+          : null,
     );
   }
 
@@ -652,6 +664,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                );
+              } else if (i == 3) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SocialScreen()),
                 );
               } else {
                 setState(() => _selectedIndex = i);
