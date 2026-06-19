@@ -15,7 +15,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nimController = TextEditingController();
   final _authService = AuthService();
+  String _selectedRole = 'mahasiswa';
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
@@ -24,9 +26,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final name = _usernameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    final nim = _nimController.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() => _errorMessage = 'Semua field harus diisi.');
+      return;
+    }
+
+    if (_selectedRole == 'mahasiswa' && nim.isEmpty) {
+      setState(() => _errorMessage = 'NIM wajib diisi untuk Mahasiswa.');
       return;
     }
 
@@ -41,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final success = await _authService.register(name, email, password);
+      final success = await _authService.register(name, email, password, _selectedRole, nim: _selectedRole == 'mahasiswa' ? nim : null);
       if (!mounted) return;
 
       if (success) {
@@ -64,6 +72,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _nimController.dispose();
     super.dispose();
   }
 
@@ -147,6 +156,58 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                       ),
+
+                      // Dropdown Role
+                      const Text(
+                        'Daftar Sebagai :',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF444444),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE0E0E0)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedRole,
+                            isExpanded: true,
+                            items: const [
+                              DropdownMenuItem(value: 'mahasiswa', child: Text('Mahasiswa')),
+                              DropdownMenuItem(value: 'dosen', child: Text('Dosen')),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedRole = val);
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      if (_selectedRole == 'mahasiswa') ...[
+                        const Text(
+                          'NIM :',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF444444),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _nimController,
+                          keyboardType: TextInputType.number,
+                          decoration: _inputDecoration(),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
 
                       // Label Username
                       const Text(

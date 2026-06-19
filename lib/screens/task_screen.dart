@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/task_service.dart';
 import 'add_task_screen.dart';
 import 'calendar_screen.dart';
@@ -15,6 +16,7 @@ class _TaskScreenState extends State<TaskScreen> {
 
   List _apiTasks = [];
   bool _loading = true;
+  String _role = 'mahasiswa';
 
   @override
   void initState() {
@@ -24,75 +26,57 @@ class _TaskScreenState extends State<TaskScreen> {
 
   Future<void> _loadTasks() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getString('role') ?? 'mahasiswa';
       final tasks = await TaskService().getTasks();
-      if (mounted) setState(() { _apiTasks = tasks; _loading = false; });
+      if (mounted) setState(() { _role = role; _apiTasks = tasks; _loading = false; });
     } catch (_) {
       if (mounted) setState(() { _loading = false; });
     }
   }
 
+  void _showJoinTaskDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Join Task', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: 'Masukkan kode tugas'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final code = controller.text.trim();
+                if (code.isNotEmpty) {
+                  Navigator.pop(context);
+                  try {
+                    await TaskService().joinTask(code);
+                    _loadTasks();
+                  } catch (e) {
+                    if (mounted) {
+                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal join tugas')));
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white),
+              child: const Text('Join'),
+            ),
+          ],
+        );
+      }
+    );
+  }
+
   // ── Data ────────────────────────────────────────────────────────────────────
 
-  static final _upcoming = [
-    {
-      'title': 'Implementasi REST API dengan Laravel',
-      'deadline': 'Besok, 08:00',
-      'description': 'Buat endpoint CRUD untuk manajemen data mahasiswa.',
-      'subject': 'Pemrograman Web',
-      'type': 'Kelompok',
-      'progress': 0.6,
-    },
-    {
-      'title': 'Laporan Praktikum Jaringan Komputer',
-      'deadline': 'Jum, 23:59',
-      'description': 'Konfigurasi VLAN dan routing statis pada Cisco Packet Tracer.',
-      'subject': 'Jaringan Komputer',
-      'type': 'Individu',
-      'progress': 0.35,
-    },
-  ];
-
-  static final _others = [
-    {
-      'title': 'Klasifikasi Gambar dengan CNN',
-      'deadline': 'Senin, 19:00',
-      'description': 'Implementasi model CNN menggunakan TensorFlow untuk klasifikasi dataset CIFAR-10.',
-      'subject': 'Kecerdasan Buatan',
-      'type': 'Kelompok',
-      'progress': 0.5,
-    },
-    {
-      'title': 'Desain ERD Sistem Informasi Akademik',
-      'deadline': 'Rabu, 23:59',
-      'description': 'Rancang skema basis data dan normalisasi hingga 3NF.',
-      'subject': 'Basis Data',
-      'type': 'Individu',
-      'progress': 0.25,
-    },
-    {
-      'title': 'Analisis Algoritma Sorting',
-      'deadline': 'Kamis, 15:00',
-      'description': 'Bandingkan kompleksitas waktu QuickSort, MergeSort, dan HeapSort.',
-      'subject': 'Algoritma & Struktur Data',
-      'type': 'Individu',
-      'progress': 0.15,
-    },
-  ];
-
-  static final _done = [
-    {
-      'title': 'Desain UI Aplikasi Mobile SIAKAD',
-      'deadline': 'Selesai hari ini, 10:00',
-    },
-    {
-      'title': 'Setup Lingkungan Docker untuk Microservices',
-      'deadline': 'Selesai kemarin, 14:00',
-    },
-    {
-      'title': 'Makalah Keamanan Informasi – Enkripsi AES',
-      'deadline': 'Selesai minggu lalu',
-    },
-  ];
 
   // ── Build ────────────────────────────────────────────────────────────────────
 
@@ -114,7 +98,7 @@ class _TaskScreenState extends State<TaskScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _role == 'dosen' ? FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -125,6 +109,11 @@ class _TaskScreenState extends State<TaskScreen> {
         backgroundColor: _pink,
         shape: const CircleBorder(),
         child: const Icon(Icons.add, color: Colors.white, size: 28),
+      ) : FloatingActionButton.extended(
+        onPressed: _showJoinTaskDialog,
+        backgroundColor: _pink,
+        icon: const Icon(Icons.group_add, color: Colors.white),
+        label: const Text('Join Task', style: TextStyle(color: Colors.white)),
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -195,48 +184,30 @@ class _TaskScreenState extends State<TaskScreen> {
   // ── Scrollable Body ──────────────────────────────────────────────────────────
 
   Widget _buildBody() {
-    // Use API data if available, else use dummy
-    final upcomingData = _apiTasks.isNotEmpty
-        ? _apiTasks
-            .where((t) => t['status'] != 'done')
-            .take(2)
-            .map((t) => {
-                  'title': t['title'] ?? '',
-                  'deadline': t['deadline'] ?? '',
-                  'description': t['description'] ?? '',
-                  'subject': t['subject'] ?? 'Mata Kuliah',
-                  'type': 'Individu',
-                  'progress': 0.4,
-                })
-            .toList()
-        : _upcoming;
+    final activeData = _apiTasks
+        .where((t) => t['status'] != 'done' && t['status'] != 'closed' && t['status'] != 'graded')
+        .toList();
 
-    final doneData = _apiTasks.isNotEmpty
-        ? _apiTasks
-            .where((t) => t['status'] == 'done')
-            .map((t) => {
-                  'title': t['title'] ?? '',
-                  'deadline': t['deadline'] ?? '',
-                })
-            .toList()
-        : _done;
+    final doneData = _apiTasks
+        .where((t) => t['status'] == 'done' || t['status'] == 'closed' || t['status'] == 'graded')
+        .toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Tugas Terdekat'),
+          _buildSectionHeader('Tugas Aktif'),
           const SizedBox(height: 12),
-          ...upcomingData.map((t) => _buildPendingCard(t)).toList(),
+          if (activeData.isEmpty)
+             const Text('Tidak ada tugas aktif.', style: TextStyle(color: Colors.grey)),
+          ...activeData.map((t) => _buildPendingCard(t)).toList(),
           const SizedBox(height: 20),
-          _buildSectionHeader('Tugas Lainnya'),
+          _buildSectionHeader('Tugas Selesai / Ditutup'),
           const SizedBox(height: 12),
-          ..._others.map((t) => _buildPendingCard(t)).toList(),
-          const SizedBox(height: 20),
-          _buildSectionHeader('Tugas Selesai'),
-          const SizedBox(height: 12),
-          _buildDoneSection(doneData),
+          if (doneData.isEmpty)
+             const Text('Belum ada tugas selesai.', style: TextStyle(color: Colors.grey)),
+          if (doneData.isNotEmpty) _buildDoneSection(doneData),
         ],
       ),
     );
@@ -274,9 +245,9 @@ class _TaskScreenState extends State<TaskScreen> {
   // ── Pending Task Card ────────────────────────────────────────────────────────
 
   Widget _buildPendingCard(Map task) {
-    final double progress = (task['progress'] as num?)?.toDouble() ?? 0.4;
-    final String subject = task['subject']?.toString() ?? '';
-    final String type = task['type']?.toString() ?? 'Individu';
+    final double progress = 0.0;
+    final String subject = task['nama_matkul']?.toString() ?? task['subject']?.toString() ?? '';
+    final String type = task['tipe']?.toString() ?? task['type']?.toString() ?? 'Individu';
     final bool isGroup = type.toLowerCase().contains('kelompok');
 
     return Padding(
@@ -341,7 +312,7 @@ class _TaskScreenState extends State<TaskScreen> {
               const SizedBox(height: 10),
               // Title
               Text(
-                task['title']?.toString() ?? '',
+                task['nama_tugas']?.toString() ?? task['title']?.toString() ?? '',
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -349,10 +320,10 @@ class _TaskScreenState extends State<TaskScreen> {
                 ),
               ),
               // Description
-              if ((task['description'] ?? '').toString().isNotEmpty) ...[
+              if ((task['deskripsi'] ?? task['description'] ?? '').toString().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
-                  task['description'].toString(),
+                  (task['deskripsi'] ?? task['description']).toString(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -371,16 +342,17 @@ class _TaskScreenState extends State<TaskScreen> {
               ),
               const SizedBox(height: 12),
               // Progress bar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 4,
-                  backgroundColor: const Color(0xFFEEEEEE),
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(_pink),
+              if (_role == 'mahasiswa')
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 4,
+                    backgroundColor: const Color(0xFFEEEEEE),
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(_pink),
+                  ),
                 ),
-              ),
               const SizedBox(height: 14),
             ],
           ),
@@ -492,7 +464,7 @@ class _TaskScreenState extends State<TaskScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  task['title']?.toString() ?? '',
+                  task['nama_tugas']?.toString() ?? task['title']?.toString() ?? '',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,

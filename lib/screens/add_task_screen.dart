@@ -108,10 +108,11 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     setState(() => _saving = true);
     try {
       await TaskService().createTask(
-        title: _titleCtrl.text.trim(),
-        subject: _selectedSubject!,
-        deadline: _deadlineString,
-        description: _descCtrl.text.trim(),
+        namaTugas: _titleCtrl.text.trim(),
+        namaMatkul: _selectedSubject!,
+        deadline: DateFormat('yyyy-MM-dd').format(_selectedDate!),
+        jam: _selectedTime != null ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}' : '23:59',
+        deskripsi: _descCtrl.text.trim(),
       );
       if (!mounted) return;
       Navigator.pop(context, true); // return true → refresh list

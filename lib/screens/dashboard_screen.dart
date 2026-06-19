@@ -17,7 +17,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   String _username = 'Fauzi';
+  String _role = 'mahasiswa';
   List _tasks = [];
+  Map<String, dynamic>? _dashboardStats;
   bool _loadingTasks = true;
 
   static const _pink = Color(0xFFE91E8C);
@@ -33,16 +35,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _username = prefs.getString('name') ?? 'Fauzi';
+      _role = prefs.getString('role') ?? 'mahasiswa';
     });
   }
 
   Future<void> _loadTasks() async {
     try {
+      final stats = await TaskService().getDashboardStats();
       final tasks = await TaskService().getTasks();
-      if (mounted) setState(() { _tasks = tasks; _loadingTasks = false; });
+      if (mounted) setState(() { _tasks = tasks; _dashboardStats = stats; _loadingTasks = false; });
     } catch (_) {
       if (mounted) setState(() { _loadingTasks = false; });
     }
+  }
+
+  void _showJoinTaskDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Join Task', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: 'Masukkan kode tugas'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final code = controller.text.trim();
+                if (code.isNotEmpty) {
+                  Navigator.pop(context);
+                  try {
+                    await TaskService().joinTask(code);
+                    _loadTasks();
+                  } catch (e) {
+                    if (mounted) {
+                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal join tugas')));
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white),
+              child: const Text('Join'),
+            ),
+          ],
+        );
+      }
+    );
   }
 
   void _logout() async {
@@ -64,7 +108,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? _buildDashboardBody()
             : _buildPlaceholder(_navLabels[_selectedIndex]),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _role == 'dosen' ? FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -75,6 +119,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: _pink,
         shape: const CircleBorder(),
         child: const Icon(Icons.add, color: Colors.white, size: 28),
+      ) : FloatingActionButton.extended(
+        onPressed: _showJoinTaskDialog,
+        backgroundColor: _pink,
+        icon: const Icon(Icons.group_add, color: Colors.white),
+        label: const Text('Join Task', style: TextStyle(color: Colors.white)),
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -168,7 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ── GREETING ──────────────────────────────────────────────────────────────
 
   Widget _buildGreeting() {
-    final nearDeadline = _tasks.isEmpty ? 3 : _tasks.length;
+    final active = _dashboardStats?['tugas_aktif'] ?? (_tasks.isEmpty ? 0 : _tasks.length);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -191,8 +240,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 6),
         Text(
           _loadingTasks
-              ? 'Memuat tugas...'
-              : 'Kamu punya $nearDeadline tugas penting minggu ini.',
+              ? 'Memuat data...'
+              : 'Ada $active tugas aktif minggu ini.',
           style: const TextStyle(fontSize: 14, color: Color(0xFF777777)),
         ),
       ],
@@ -220,9 +269,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildProgressCard() {
-    final total = _tasks.isEmpty ? 15 : _tasks.length;
-    final done = _tasks.isEmpty ? 12 : (_tasks.length * 0.8).round();
-    final pct = total == 0 ? 0.0 : done / total;
+    int total = _tasks.length > 0 ? _tasks.length : 1;
+    int done = 0;
+    double pct = 0.0;
+    if (_dashboardStats != null) {
+      if (_role == 'mahasiswa') {
+        total = _dashboardStats!['total_tugas'] ?? 1;
+        done = _dashboardStats!['tugas_selesai'] ?? 0;
+        pct = (_dashboardStats!['progress'] ?? 0) / 100.0;
+      } else {
+        total = _dashboardStats!['tugas_aktif'] ?? 1;
+        done = _dashboardStats!['sudah_dinilai'] ?? 0;
+        pct = total == 0 ? 0.0 : done / total;
+      }
+    }
 
     return Container(
       width: double.infinity,
@@ -444,17 +504,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            task['title'] ?? 'Tugas',
+            task['nama_tugas'] ?? task['title'] ?? 'Tugas',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Color(0xFF1A1A1A),
             ),
           ),
-          if (task['description'] != null && task['description'] != '') ...[
+          if (task['deskripsi'] != null && task['deskripsi'] != '') ...[
             const SizedBox(height: 4),
             Text(
-              task['description'],
+              task['deskripsi'],
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 13, color: Color(0xFF777777)),
@@ -473,16 +533,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
           // Progress bar at bottom of card
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: 0.6,
-              minHeight: 5,
-              backgroundColor: const Color(0xFFEEEEEE),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Color(0xFFE91E8C)),
+          if (_role == 'mahasiswa')
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: 0.0,
+                minHeight: 5,
+                backgroundColor: const Color(0xFFEEEEEE),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Color(0xFFE91E8C)),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -534,7 +595,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  task['title'] ?? 'Tugas',
+                  task['nama_tugas'] ?? task['title'] ?? 'Tugas',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
