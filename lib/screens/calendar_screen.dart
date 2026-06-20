@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/user_service.dart';
+import '../services/task_service.dart';
 import 'add_task_screen.dart';
 import 'dashboard_screen.dart';
 import 'task_screen.dart';
@@ -19,8 +20,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedMonth = DateTime.now();
   DateTime _selectedDay = DateTime.now();
 
-  // Dummy task events: day → list of tasks
-  late final Map<String, List<Map<String, dynamic>>> _events;
+  // Task events: day → list of tasks
+  Map<String, List<Map<String, dynamic>>> _events = {};
+  bool _loadingTasks = true;
 
   final _userService = UserService();
 
@@ -29,105 +31,63 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.initState();
     _userService.addListener(_onUserChanged);
     _userService.loadUser();
-    final now = DateTime.now();
-    // Populate events relative to today
-    _events = {
-      _key(now): [
-        {
-          'title': 'Implementasi REST API Laravel',
-          'time': '10:00 - 12:00',
-          'tag': 'Pemrograman Web',
-          'tagColor': const Color(0xFF7C4DFF),
-          'done': false,
-          'due': null,
-          'hasProgress': false,
-        },
-        {
-          'title': 'Laporan Praktikum Jaringan',
-          'time': null,
-          'tag': null,
-          'tagColor': null,
-          'done': true,
-          'due': 'Due Tomorrow',
-          'hasProgress': true,
-          'progress': 0.65,
-        },
-        {
-          'title': 'Diskusi Kelompok Basis Data',
-          'time': null,
-          'tag': 'Kelompok',
-          'tagColor': const Color(0xFF009688),
-          'done': false,
-          'due': null,
-          'hasProgress': false,
-          'location': 'Lab Komputer B',
-        },
-      ],
-      _key(now.add(const Duration(days: 2))): [
-        {
-          'title': 'Klasifikasi Gambar CNN',
-          'time': '13:00 - 15:00',
-          'tag': 'Kecerdasan Buatan',
-          'tagColor': const Color(0xFF4CAF50),
-          'done': false,
-          'due': null,
-          'hasProgress': false,
-        },
-      ],
-      _key(now.add(const Duration(days: 4))): [
-        {
-          'title': 'Desain ERD Sistem Informasi',
-          'time': '09:00 - 10:30',
-          'tag': 'Basis Data',
-          'tagColor': const Color(0xFFFF9800),
-          'done': false,
-          'due': 'Due Tomorrow',
-          'hasProgress': true,
-          'progress': 0.3,
-        },
-        {
-          'title': 'Analisis Algoritma Sorting',
-          'time': '14:00 - 15:00',
-          'tag': 'Algoritma',
-          'tagColor': const Color(0xFF2196F3),
-          'done': false,
-          'due': null,
-          'hasProgress': false,
-        },
-      ],
-      _key(now.subtract(const Duration(days: 2))): [
-        {
-          'title': 'Review Makalah Keamanan Informasi',
-          'time': '10:00 - 11:00',
-          'tag': 'Keamanan',
-          'tagColor': const Color(0xFFE91E8C),
-          'done': true,
-          'due': null,
-          'hasProgress': false,
-        },
-      ],
-      _key(now.add(const Duration(days: 7))): [
-        {
-          'title': 'Presentasi Rekayasa Perangkat Lunak',
-          'time': '08:00 - 10:00',
-          'tag': 'RPL',
-          'tagColor': const Color(0xFF9C27B0),
-          'done': false,
-          'due': null,
-          'hasProgress': false,
-        },
-        {
-          'title': 'Deploy Aplikasi Mobile ke PlayStore',
-          'time': null,
-          'tag': 'Mobile',
-          'tagColor': const Color(0xFF00BCD4),
-          'done': false,
-          'due': null,
-          'hasProgress': true,
-          'progress': 0.5,
-        },
-      ],
-    };
+    _loadTasksFromApi();
+  }
+
+  Future<void> _loadTasksFromApi() async {
+    try {
+      final tasks = await TaskService().getTasks();
+      final Map<String, List<Map<String, dynamic>>> newEvents = {};
+
+      for (var task in tasks) {
+        String? deadlineStr = task['deadline']?.toString();
+        if (deadlineStr != null && deadlineStr.length >= 10) {
+          // Asumsi format 'yyyy-MM-dd'
+          String dateKey = deadlineStr.substring(0, 10);
+          
+          bool isDone = task['status'] == 'done' || task['status'] == 'closed' || task['status'] == 'graded';
+          String title = task['nama_tugas']?.toString() ?? task['title']?.toString() ?? 'Tugas';
+          String time = task['jam']?.toString() ?? '23:59';
+          
+          String tag = 'Tugas';
+          Color tagColor = const Color(0xFF8B5CF6); // Default color assignment
+          
+          if (task['mata_kuliah'] != null && task['mata_kuliah'] is Map) {
+             tag = task['mata_kuliah']['nama_matkul']?.toString() ?? tag;
+          } else if (task['nama_matkul'] != null) {
+             tag = task['nama_matkul'].toString();
+          } else if (task['subject'] != null) {
+             tag = task['subject'].toString();
+          }
+
+          if (newEvents[dateKey] == null) {
+            newEvents[dateKey] = [];
+          }
+          newEvents[dateKey]!.add({
+            'title': title,
+            'time': time,
+            'tag': tag,
+            'tagColor': tagColor,
+            'done': isDone,
+            'due': null,
+            'hasProgress': false,
+          });
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _events = newEvents;
+          _loadingTasks = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingTasks = false;
+        });
+      }
+    }
   }
 
   String _key(DateTime d) =>
@@ -174,7 +134,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     const SizedBox(height: 12),
                     _buildCalendarCard(),
                     const SizedBox(height: 20),
-                    _buildScheduleSection(),
+                    _loadingTasks 
+                        ? const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: _pink)))
+                        : _buildScheduleSection(),
                     const SizedBox(height: 80),
                   ],
                 ),
