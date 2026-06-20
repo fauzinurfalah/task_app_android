@@ -5,15 +5,15 @@ class AuthService {
 
   Future<bool> login(String email, String password) async {
     try {
-      // Supabase Auth handles login securely and creates a session.
       final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
       return response.session != null;
+    } on AuthException catch (e) {
+      throw Exception(e.message);
     } catch (e) {
-      print('Login error: $e');
-      return false;
+      throw Exception('Gagal terhubung ke server.');
     }
   }
 
@@ -25,22 +25,29 @@ class AuthService {
       );
 
       final user = response.user;
-      if (user != null) {
-        // Insert user details into the 'users' table including the password
-        await _supabase.from('users').insert({
-          'id': user.id,
-          'name': name,
-          'email': email,
-          'password': password,
-          'photo_url': null,
-          'points': 0,
-        });
-        return true;
+      if (user == null) {
+        throw Exception('Pendaftaran gagal. Coba lagi.');
       }
-      return false;
+
+      // Insert user details into the 'users' table
+      await _supabase.from('users').insert({
+        'id': user.id,
+        'name': name,
+        'email': email,
+        'password': password,
+        'photo_url': null,
+        'points': 0,
+      });
+
+      return true;
+    } on AuthException catch (e) {
+      // Supabase error, e.g. "User already registered"
+      throw Exception(e.message);
+    } on PostgrestException catch (e) {
+      // Database insert error, e.g. duplicate key in 'users' table
+      throw Exception('Gagal menyimpan data: ${e.message}');
     } catch (e) {
-      print('Register error: $e');
-      return false;
+      throw Exception('Terjadi kesalahan. Periksa koneksi Anda.');
     }
   }
 

@@ -49,11 +49,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           context,
           MaterialPageRoute(builder: (_) => const DashboardScreen()),
         );
-      } else {
-        setState(() => _errorMessage = 'Pendaftaran gagal. Email mungkin sudah digunakan.');
       }
-    } catch (e) {
-      setState(() => _errorMessage = 'Gagal terhubung ke server. Periksa koneksi Anda.');
+    } on Exception catch (e) {
+      if (!mounted) return;
+      // Tampilkan pesan error asli dari Supabase
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      setState(() => _errorMessage = msg);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
