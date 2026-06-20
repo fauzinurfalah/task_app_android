@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
 
-  final String baseUrl = kIsWeb ? "http://localhost:8000/api" : "http://10.0.2.2:8000/api";
+  final String baseUrl = kIsWeb ? "http://127.0.0.1:8000/api" : "http://10.0.2.2:8000/api";
 
   Future<bool> login(String email, String password) async {
 
@@ -24,6 +24,11 @@ class AuthService {
     if (response.statusCode == 200) {
 
       final data = jsonDecode(response.body);
+      
+      final role = data['user']?['role'] ?? data['role'];
+      if (role == 'dosen') {
+        throw Exception('khusus untuk Mahasiswa');
+      }
 
       SharedPreferences prefs =
           await SharedPreferences.getInstance();

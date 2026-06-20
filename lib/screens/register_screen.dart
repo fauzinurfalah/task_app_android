@@ -183,6 +183,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               DropdownMenuItem(value: 'dosen', child: Text('Dosen')),
                             ],
                             onChanged: (val) {
+                              if (val == 'dosen') {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Peringatan'),
+                                    content: const Text('Pendaftaran Dosen ditutup. Aplikasi ini khusus untuk Mahasiswa.'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx),
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                return;
+                              }
                               if (val != null) setState(() => _selectedRole = val);
                             },
                           ),
