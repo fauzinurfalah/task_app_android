@@ -2,10 +2,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/task_service.dart';
+import '../services/user_service.dart';
 import 'login_screen.dart';
 import 'task_screen.dart';
 import 'add_task_screen.dart';
 import 'calendar_screen.dart';
+import 'social_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -21,22 +24,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List _tasks = [];
   Map<String, dynamic>? _dashboardStats;
   bool _loadingTasks = true;
+  final _userService = UserService();
 
   static const _pink = Color(0xFFE91E8C);
 
   @override
   void initState() {
     super.initState();
+    _userService.addListener(_onUserChanged);
     _loadUser();
     _loadTasks();
   }
 
+  @override
+  void dispose() {
+    _userService.removeListener(_onUserChanged);
+    super.dispose();
+  }
+
+  void _onUserChanged() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('name') ?? '';
+    final savedRole = prefs.getString('role') ?? 'mahasiswa';
     setState(() {
-      _username = prefs.getString('name') ?? 'Fauzi';
-      _role = prefs.getString('role') ?? 'mahasiswa';
+      _username = savedName.isNotEmpty ? savedName : 'Pengguna';
+      _role = savedRole;
     });
+    // Load dari API agar foto profil & nama terbaru tampil
+    await _userService.loadUser();
+    if (mounted && _userService.name.isNotEmpty) {
+      setState(() => _username = _userService.name);
+    }
   }
 
   Future<void> _loadTasks() async {
@@ -90,8 +112,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await _userService.logout();
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
@@ -191,26 +212,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(width: 12),
         GestureDetector(
-          onTap: _logout,
-          child: CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFF5C5C5C),
-            child: ClipOval(
-              child: Image.network(
-                'https://i.pravatar.cc/36?img=12',
-                width: 36,
-                height: 36,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProfileScreen()),
           ),
+          child: _buildAvatarWidget(),
         ),
       ],
+    );
+  }
+
+  Widget _buildAvatarWidget() {
+    final photoUrl = _userService.photoUrl;
+    return CircleAvatar(
+      radius: 18,
+      backgroundColor: const Color(0xFF5C5C5C),
+      backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+          ? NetworkImage(photoUrl)
+          : null,
+      child: (photoUrl == null || photoUrl.isEmpty)
+          ? const Icon(Icons.person, color: Colors.white, size: 18)
+          : null,
     );
   }
 
@@ -705,14 +727,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return GestureDetector(
             onTap: () {
               if (i == 1) {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (_) => const TaskScreen()),
                 );
               } else if (i == 2) {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                );
+              } else if (i == 3) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SocialScreen()),
                 );
               } else {
                 setState(() => _selectedIndex = i);
@@ -771,9 +798,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 20),
           _drawerItem(Icons.dashboard_rounded, 'Dashboard', () => Navigator.pop(context)),
-          _drawerItem(Icons.check_box_outlined, 'Tugas Saya', () => Navigator.pop(context)),
-          _drawerItem(Icons.calendar_month_outlined, 'Kalender', () => Navigator.pop(context)),
-          _drawerItem(Icons.settings_outlined, 'Pengaturan', () => Navigator.pop(context)),
+          _drawerItem(Icons.check_box_outlined, 'Tugas Saya', () {
+            Navigator.pop(context);
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TaskScreen()));
+          }),
+          _drawerItem(Icons.calendar_month_outlined, 'Kalender', () {
+            Navigator.pop(context);
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CalendarScreen()));
+          }),
+          _drawerItem(Icons.settings_outlined, 'Pengaturan', () {
+            Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+          }),
           const Divider(),
           _drawerItem(Icons.logout, 'Keluar', () {
             Navigator.pop(context);

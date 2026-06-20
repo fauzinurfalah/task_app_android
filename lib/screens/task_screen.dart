@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/task_service.dart';
+import '../services/user_service.dart';
 import 'add_task_screen.dart';
 import 'calendar_screen.dart';
+import 'dashboard_screen.dart';
+import 'social_screen.dart';
+import 'profile_screen.dart';
 
 class TaskScreen extends StatefulWidget {
   const TaskScreen({super.key});
@@ -17,11 +21,24 @@ class _TaskScreenState extends State<TaskScreen> {
   List _apiTasks = [];
   bool _loading = true;
   String _role = 'mahasiswa';
+  final _userService = UserService();
 
   @override
   void initState() {
     super.initState();
+    _userService.addListener(_onUserChanged);
+    _userService.loadUser();
     _loadTasks();
+  }
+
+  @override
+  void dispose() {
+    _userService.removeListener(_onUserChanged);
+    super.dispose();
+  }
+
+  void _onUserChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadTasks() async {
@@ -159,22 +176,24 @@ class _TaskScreenState extends State<TaskScreen> {
             ],
           ),
           const SizedBox(width: 12),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFF5C5C5C),
-            child: ClipOval(
-              child: Image.network(
-                'https://i.pravatar.cc/36?img=12',
-                width: 36,
-                height: 36,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
             ),
+            child: Builder(builder: (ctx) {
+              final photoUrl = _userService.photoUrl;
+              return CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFF5C5C5C),
+                backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                    ? NetworkImage(photoUrl)
+                    : null,
+                child: (photoUrl == null || photoUrl.isEmpty)
+                    ? const Icon(Icons.person, color: Colors.white, size: 18)
+                    : null,
+              );
+            }),
           ),
         ],
       ),
@@ -520,11 +539,19 @@ class _TaskScreenState extends State<TaskScreen> {
           return GestureDetector(
             onTap: () {
               if (i == 0) {
-                Navigator.pop(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                );
               } else if (i == 2) {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                );
+              } else if (i == 3) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SocialScreen()),
                 );
               }
             },

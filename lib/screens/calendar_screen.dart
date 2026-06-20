@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import '../services/user_service.dart';
 import 'add_task_screen.dart';
+import 'dashboard_screen.dart';
+import 'task_screen.dart';
+import 'social_screen.dart';
+import 'profile_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -17,9 +22,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   // Dummy task events: day → list of tasks
   late final Map<String, List<Map<String, dynamic>>> _events;
 
+  final _userService = UserService();
+
   @override
   void initState() {
     super.initState();
+    _userService.addListener(_onUserChanged);
+    _userService.loadUser();
     final now = DateTime.now();
     // Populate events relative to today
     _events = {
@@ -127,6 +136,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<Map<String, dynamic>> get _selectedEvents =>
       _events[_key(_selectedDay)] ?? [];
 
+  @override
+  void dispose() {
+    _userService.removeListener(_onUserChanged);
+    super.dispose();
+  }
+
+  void _onUserChanged() {
+    if (mounted) setState(() {});
+  }
+
   // ── Navigation ────────────────────────────────────────────────────────────────
   void _prevMonth() => setState(() {
         _focusedMonth =
@@ -217,19 +236,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ],
           ),
           const SizedBox(width: 12),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFF5C5C5C),
-            child: ClipOval(
-              child: Image.network(
-                'https://i.pravatar.cc/36?img=12',
-                width: 36,
-                height: 36,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.person, color: Colors.white, size: 20),
-              ),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
             ),
+            child: Builder(builder: (ctx) {
+              final photoUrl = _userService.photoUrl;
+              return CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFF5C5C5C),
+                backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                    ? NetworkImage(photoUrl)
+                    : null,
+                child: (photoUrl == null || photoUrl.isEmpty)
+                    ? const Icon(Icons.person, color: Colors.white, size: 18)
+                    : null,
+              );
+            }),
           ),
         ],
       ),
@@ -733,7 +757,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
           final selected = i == 2;
           return GestureDetector(
             onTap: () {
-              if (i == 0 || i == 1) Navigator.pop(context);
+              if (i == 0) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                );
+              } else if (i == 1) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TaskScreen()),
+                );
+              } else if (i == 3) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SocialScreen()),
+                );
+              }
             },
             behavior: HitTestBehavior.opaque,
             child: SizedBox(
