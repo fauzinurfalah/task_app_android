@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/user_service.dart';
 import '../services/task_service.dart';
 import 'add_task_screen.dart';
->>>>>>> efd431e3173a9fe7e0d368f4c20f597b37299be6
 import 'dashboard_screen.dart';
 import 'task_screen.dart';
 import 'social_screen.dart';

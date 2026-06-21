@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/user_service.dart';
 import 'login_screen.dart';
 
@@ -12,7 +13,9 @@ class AccountSettingsScreen extends StatefulWidget {
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _nimController = TextEditingController();
   bool _isLoading = false;
+  bool _uploading = false;
   final _userService = UserService();
 
   @override
@@ -27,6 +30,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _userService.removeListener(_onUserChanged);
     _nameController.dispose();
     _emailController.dispose();
+    _nimController.dispose();
     super.dispose();
   }
 
@@ -36,6 +40,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         _nameController.text = _userService.name;
         if (_userService.email != null) {
           _emailController.text = _userService.email!;
+        }
+        if (_userService.nim != null) {
+          _nimController.text = _userService.nim!;
         }
       });
     }
@@ -48,17 +55,21 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       setState(() {
         _nameController.text = _userService.name;
         _emailController.text = _userService.email ?? '';
+        _nimController.text = _userService.nim ?? '';
       });
     }
   }
 
   Future<void> _updateProfile() async {
     final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final nim = _nimController.text.trim();
+    
     if (name.isEmpty) return;
 
     setState(() => _isLoading = true);
 
-    final success = await _userService.updateName(name);
+    final success = await _userService.updateProfileData(name, email, nim);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,14 +81,31 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    await _userService.logout();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
+  Future<void> _pickAndUploadPhoto() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      if (picked == null) return;
+
+      setState(() => _uploading = true);
+      final bytes = await picked.readAsBytes();
+      final ext = picked.name.split('.').last.toLowerCase();
+      await _userService.uploadPhoto(bytes, ext);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto profil berhasil diperbarui!')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Pick/Upload photo error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   @override
@@ -104,47 +132,54 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Stack(
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFFCE4EC), width: 4),
-                    ),
-                    child: ClipOval(
-                      child: _userService.photoUrl != null && _userService.photoUrl!.isNotEmpty
-                          ? Image.network(
-                              _userService.photoUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.person,
-                                size: 48,
-                                color: Colors.grey,
-                              ),
-                            )
-                          : const Icon(Icons.person, size: 48, color: Colors.grey),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _uploading ? null : _pickAndUploadPhoto,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE91E8C),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: const Color(0xFFFCE4EC), width: 4),
                       ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 14,
+                      child: ClipOval(
+                        child: _uploading 
+                            ? const Center(child: CircularProgressIndicator(color: Color(0xFFE91E8C)))
+                            : (_userService.photoUrl != null && _userService.photoUrl!.isNotEmpty
+                                ? Image.network(
+                                    _userService.photoUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.person,
+                                      size: 48,
+                                      color: Colors.grey,
+                                    ),
+                                  )
+                                : const Icon(Icons.person, size: 48, color: Colors.grey)),
                       ),
                     ),
-                  ),
-                ],
+                    if (!_uploading)
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE91E8C),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -175,10 +210,22 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _emailController,
-              enabled: false,
-              decoration: _inputDecoration(hint: 'Email Anda').copyWith(
-                fillColor: const Color(0xFFEEEEEE),
+              decoration: _inputDecoration(hint: 'Masukkan Email Anda'),
+            ),
+            const SizedBox(height: 20),
+
+            const Text(
+              'NIM',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF666666),
               ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _nimController,
+              decoration: _inputDecoration(hint: 'Masukkan NIM Anda'),
             ),
             const SizedBox(height: 32),
 
@@ -205,26 +252,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         letterSpacing: 1.0,
                       ),
                     ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton(
-                onPressed: _logout,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFEF5350),
-                  side: const BorderSide(color: Color(0xFFEF5350)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'KELUAR',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-                ),
               ),
             ),
           ],

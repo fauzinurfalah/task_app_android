@@ -169,26 +169,61 @@ class _TaskScreenState extends State<TaskScreen> {
   // ── Scrollable Body ──────────────────────────────────────────────────────────
 
   Widget _buildBody() {
-    final activeData = _apiTasks
-        .where((t) => t['status'] != 'done' && t['status'] != 'closed' && t['status'] != 'graded')
-        .toList();
+    final now = DateTime.now();
 
-    final doneData = _apiTasks
-        .where((t) => t['status'] == 'done' || t['status'] == 'closed' || t['status'] == 'graded')
-        .toList();
+    List<Map<String, dynamic>> activeTasks = [];
+    List<Map<String, dynamic>> doneTasks = [];
+
+    for (var t in _apiTasks) {
+      final deadlineStr = t['deadline']?.toString() ?? '';
+      final jamStr = t['jam']?.toString() ?? '23:59:00';
+      DateTime deadlineDT = now.add(const Duration(days: 365));
+      if (deadlineStr.isNotEmpty) {
+        try {
+          deadlineDT = DateTime.parse("$deadlineStr $jamStr");
+        } catch (_) {}
+      }
+
+      final status = t['status']?.toString() ?? 'pending';
+      final isPastDeadline = now.isAfter(deadlineDT);
+
+      if (status == 'submitted' || status == 'late' || status == 'graded' || (status == 'pending' && isPastDeadline)) {
+        doneTasks.add(Map<String, dynamic>.from(t));
+      } else {
+        activeTasks.add(Map<String, dynamic>.from(t));
+      }
+    }
+
+    activeTasks.sort((a, b) {
+      final dtA = DateTime.tryParse("${a['deadline']} ${a['jam'] ?? '23:59:00'}") ?? now.add(const Duration(days: 365));
+      final dtB = DateTime.tryParse("${b['deadline']} ${b['jam'] ?? '23:59:00'}") ?? now.add(const Duration(days: 365));
+      return dtA.compareTo(dtB);
+    });
+
+    doneTasks.sort((a, b) {
+      final dtA = DateTime.tryParse("${a['deadline']} ${a['jam'] ?? '23:59:00'}") ?? now;
+      final dtB = DateTime.tryParse("${b['deadline']} ${b['jam'] ?? '23:59:00'}") ?? now;
+      return dtB.compareTo(dtA);
+    });
+
+    final showActiveLihatSemua = activeTasks.length > 5;
+    final activeData = activeTasks.take(5).toList();
+
+    final showDoneLihatSemua = doneTasks.length > 10;
+    final doneData = doneTasks.take(10).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Tugas Aktif'),
+          _buildSectionHeader('Tugas Aktif', showLihatSemua: showActiveLihatSemua),
           const SizedBox(height: 12),
           if (activeData.isEmpty)
              const Text('Tidak ada tugas aktif.', style: TextStyle(color: Colors.grey)),
           ...activeData.map((t) => _buildPendingCard(t)),
           const SizedBox(height: 20),
-          _buildSectionHeader('Tugas Selesai / Ditutup'),
+          _buildSectionHeader('Tugas Selesai / Ditutup', showLihatSemua: showDoneLihatSemua),
           const SizedBox(height: 12),
           if (doneData.isEmpty)
              const Text('Belum ada tugas selesai.', style: TextStyle(color: Colors.grey)),
@@ -200,7 +235,7 @@ class _TaskScreenState extends State<TaskScreen> {
 
   // ── Section Header ───────────────────────────────────────────────────────────
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, {bool showLihatSemua = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -212,17 +247,18 @@ class _TaskScreenState extends State<TaskScreen> {
             color: Color(0xFF1A1A1A),
           ),
         ),
-        GestureDetector(
-          onTap: () {},
-          child: const Text(
-            'Lihat Semua',
-            style: TextStyle(
-              fontSize: 13,
-              color: _pink,
-              fontWeight: FontWeight.w500,
+        if (showLihatSemua)
+          GestureDetector(
+            onTap: () {},
+            child: const Text(
+              'Lihat Semua',
+              style: TextStyle(
+                fontSize: 13,
+                color: _pink,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -289,7 +325,7 @@ class _TaskScreenState extends State<TaskScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      task['deadline']?.toString() ?? '',
+                      "${task['deadline']?.toString() ?? ''} ${task['jam'] != null ? task['jam'].toString().substring(0, 5) : ''}",
                       style: const TextStyle(
                         fontSize: 11,
                         color: _pink,
@@ -406,85 +442,93 @@ class _TaskScreenState extends State<TaskScreen> {
   // ── Done Section ─────────────────────────────────────────────────────────────
 
   Widget _buildDoneSection(List doneList) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        children: doneList.asMap().entries.map((entry) {
-          final i = entry.key;
-          final task = entry.value;
-          final isLast = i == doneList.length - 1;
-          return Column(
-            children: [
-              _buildDoneItem(task),
-              if (!isLast)
-                const Divider(height: 1, indent: 20, endIndent: 20,
-                    color: Color(0xFFF2F2F2)),
-            ],
-          );
-        }).toList(),
-      ),
+    return Column(
+      children: doneList.map((task) => _buildDoneItem(task)).toList(),
     );
   }
 
   Widget _buildDoneItem(Map task) {
+    bool isDone = task['status'] == 'submitted' || task['status'] == 'graded' || task['status'] == 'done';
+
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => TaskDetailScreen(task: Map<String, dynamic>.from(task))),
       ),
-      child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: const BoxDecoration(
-              color: _pink,
-              shape: BoxShape.circle,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: _pink.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: isDone ? _pink.withValues(alpha: 0.8) : Colors.black87,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isDone ? Icons.check : Icons.close, 
+                color: Colors.white, 
+                size: 18
+              ),
             ),
-            child: const Icon(Icons.check, color: Colors.white, size: 15),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  task['nama_tugas']?.toString() ?? task['title']?.toString() ?? '',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFFAAAAAA),
-                    decoration: TextDecoration.lineThrough,
-                    decorationColor: Color(0xFFAAAAAA),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task['nama_tugas']?.toString() ?? task['title']?.toString() ?? '',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFAAAAAA),
+                      decoration: TextDecoration.lineThrough,
+                      decorationColor: Color(0xFFAAAAAA),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  task['deadline']?.toString() ?? '',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFFBBBBBB),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${task['deadline']?.toString() ?? ''} ${task['jam'] != null ? task['jam'].toString().substring(0, 5) : ''}",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF999999),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            if (isDone)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _pink.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Lihat',
+                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600, height: 1.2),
+                    ),
+                    Text(
+                      'Nilai',
+                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600, height: 1.2),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
-    ));
+    );
   }
 
   // ── Bottom Nav ───────────────────────────────────────────────────────────────

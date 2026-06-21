@@ -191,26 +191,24 @@ class TaskService {
 
   /// Mengembalikan Map: {'events': {'2026-06-21': [...tasks]}, 'summary': {'2026-06-21': 2}}
   Future<Map<String, dynamic>> getCalendarEvents({int? month, int? year}) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String token = prefs.getString('token') ?? '';
-    String role = prefs.getString('role') ?? 'mahasiswa';
-
-    final now = DateTime.now();
-    final m = month ?? now.month;
-    final y = year ?? now.year;
-
-    final response = await http.get(
-      Uri.parse('$baseUrl/$role/calendar?month=$m&year=$y'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      return data;
+    try {
+      final tasks = await getTasks();
+      final Map<String, List<Map<String, dynamic>>> parsed = {};
+      for (var t in tasks) {
+        if (t is Map<String, dynamic>) {
+          String? deadlineStr = t['deadline']?.toString();
+          if (deadlineStr != null && deadlineStr.length >= 10) {
+            String dateKey = deadlineStr.substring(0, 10);
+            if (parsed[dateKey] == null) {
+              parsed[dateKey] = [];
+            }
+            parsed[dateKey]!.add(t);
+          }
+        }
+      }
+      return {'events': parsed, 'summary': {}};
+    } catch (e) {
+      return {'events': {}, 'summary': {}};
     }
-    return {'events': {}, 'summary': {}};
   }
 }
