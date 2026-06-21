@@ -50,7 +50,24 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _errorMessage = 'Email atau password salah.');
       }
     } catch (e) {
-      setState(() => _errorMessage = 'Gagal terhubung ke server. Periksa koneksi Anda.');
+      if (e.toString().contains('khusus untuk Mahasiswa')) {
+        setState(() => _errorMessage = 'Akses ditolak: Hanya untuk Mahasiswa.');
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Peringatan'),
+            content: const Text('Akun Dosen tidak diizinkan masuk. Aplikasi ini khusus untuk Mahasiswa.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        setState(() => _errorMessage = 'Gagal terhubung ke server. Periksa koneksi Anda.');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

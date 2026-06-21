@@ -21,7 +21,7 @@ class UserService extends ChangeNotifier {
   String? get nim => _nim;
 
   final String baseUrl =
-      kIsWeb ? 'http://localhost:8000/api' : 'http://10.0.2.2:8000/api';
+      kIsWeb ? 'http://127.0.0.1:8000/api' : 'http://10.0.2.2:8000/api';
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
