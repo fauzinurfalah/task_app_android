@@ -7,6 +7,8 @@ import 'calendar_screen.dart';
 import 'dashboard_screen.dart';
 import 'social_screen.dart';
 import 'profile_screen.dart';
+import 'task_detail_screen.dart';
+import 'join_task_helper.dart';
 
 class TaskScreen extends StatefulWidget {
   const TaskScreen({super.key});
@@ -53,43 +55,7 @@ class _TaskScreenState extends State<TaskScreen> {
   }
 
   void _showJoinTaskDialog() {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Join Task', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: 'Masukkan kode tugas'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final code = controller.text.trim();
-                if (code.isNotEmpty) {
-                  Navigator.pop(context);
-                  try {
-                    await TaskService().joinTask(code);
-                    _loadTasks();
-                  } catch (e) {
-                    if (mounted) {
-                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal join tugas')));
-                    }
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white),
-              child: const Text('Join'),
-            ),
-          ],
-        );
-      }
-    );
+    JoinTaskHelper.show(context, onSuccess: _loadTasks);
   }
 
   // ── Data ────────────────────────────────────────────────────────────────────
@@ -220,7 +186,7 @@ class _TaskScreenState extends State<TaskScreen> {
           const SizedBox(height: 12),
           if (activeData.isEmpty)
              const Text('Tidak ada tugas aktif.', style: TextStyle(color: Colors.grey)),
-          ...activeData.map((t) => _buildPendingCard(t)).toList(),
+          ...activeData.map((t) => _buildPendingCard(t)),
           const SizedBox(height: 20),
           _buildSectionHeader('Tugas Selesai / Ditutup'),
           const SizedBox(height: 12),
@@ -269,7 +235,15 @@ class _TaskScreenState extends State<TaskScreen> {
     final String type = task['tipe']?.toString() ?? task['type']?.toString() ?? 'Individu';
     final bool isGroup = type.toLowerCase().contains('kelompok');
 
-    return Padding(
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => TaskDetailScreen(task: Map<String, dynamic>.from(task))),
+        );
+        if (result == true) _loadTasks();
+      },
+      child: Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Container(
         decoration: BoxDecoration(
@@ -377,7 +351,7 @@ class _TaskScreenState extends State<TaskScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildSubjectTag(String label) {
@@ -464,7 +438,12 @@ class _TaskScreenState extends State<TaskScreen> {
   }
 
   Widget _buildDoneItem(Map task) {
-    return Padding(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => TaskDetailScreen(task: Map<String, dynamic>.from(task))),
+      ),
+      child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
@@ -505,7 +484,7 @@ class _TaskScreenState extends State<TaskScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   // ── Bottom Nav ───────────────────────────────────────────────────────────────
@@ -585,3 +564,4 @@ class _TaskScreenState extends State<TaskScreen> {
     );
   }
 }
+

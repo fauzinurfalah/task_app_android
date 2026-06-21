@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import 'dashboard_screen.dart';
 import 'register_screen.dart';
 
@@ -38,6 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (success) {
+        // Setelah login berhasil, daftarkan FCM token ke server
+        NotificationService().initialize();
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const DashboardScreen()),

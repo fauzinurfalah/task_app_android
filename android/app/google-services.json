@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "308749485078",
+    "project_id": "tetugas-90d30",
+    "storage_bucket": "tetugas-90d30.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:308749485078:android:ffdb50592a38f655d9e137",
+        "android_client_info": {
+          "package_name": "com.example.task_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAkdmt6UqchdaEPpgFhhS_gL0lu9iV8Nk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

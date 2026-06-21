@@ -40,7 +40,7 @@ class _SocialScreenState extends State<SocialScreen> {
     {
       'name': 'Zero Cool',
       'username': '@zero_c',
-      'avatar': null, // no photo → show initial
+      'avatar': null,
       'online': true,
     },
     {
