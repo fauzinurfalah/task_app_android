@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../services/user_service.dart';
+<<<<<<< HEAD
+=======
 import '../services/task_service.dart';
 import 'add_task_screen.dart';
+>>>>>>> efd431e3173a9fe7e0d368f4c20f597b37299be6
 import 'dashboard_screen.dart';
 import 'task_screen.dart';
 import 'social_screen.dart';
 import 'profile_screen.dart';
+import 'join_task_helper.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -145,16 +149,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddTaskScreen()),
-          );
-        },
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => JoinTaskHelper.show(context),
         backgroundColor: _pink,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
+        icon: const Icon(Icons.group_add, color: Colors.white),
+        label: const Text('Join Task', style: TextStyle(color: Colors.white)),
       ),
       bottomNavigationBar: _buildBottomNav(),
     );

@@ -9,6 +9,7 @@ import 'add_task_screen.dart';
 import 'calendar_screen.dart';
 import 'social_screen.dart';
 import 'profile_screen.dart';
+import 'join_task_helper.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -71,45 +72,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _showJoinTaskDialog() {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Join Task', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: 'Masukkan kode tugas'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final code = controller.text.trim();
-                if (code.isNotEmpty) {
-                  Navigator.pop(context);
-                  try {
-                    await TaskService().joinTask(code);
-                    _loadTasks();
-                  } catch (e) {
-                    if (mounted) {
-                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal join tugas')));
-                    }
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white),
-              child: const Text('Join'),
-            ),
-          ],
-        );
-      }
-    );
-  }
 
   void _logout() async {
     await _userService.logout();
@@ -141,7 +103,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         shape: const CircleBorder(),
         child: const Icon(Icons.add, color: Colors.white, size: 28),
       ) : FloatingActionButton.extended(
-        onPressed: _showJoinTaskDialog,
+        onPressed: () => JoinTaskHelper.show(context, onSuccess: _loadTasks),
         backgroundColor: _pink,
         icon: const Icon(Icons.group_add, color: Colors.white),
         label: const Text('Join Task', style: TextStyle(color: Colors.white)),
