@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/user_service.dart';
 import '../services/task_service.dart';
 import 'add_task_screen.dart';
+>>>>>>> efd431e3173a9fe7e0d368f4c20f597b37299be6
 import 'dashboard_screen.dart';
 import 'task_screen.dart';
 import 'social_screen.dart';
@@ -21,81 +22,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedMonth = DateTime.now();
   DateTime _selectedDay = DateTime.now();
 
-  // Task events: day → list of tasks
+  /// events dari API: { 'yyyy-MM-dd': [ {...task}, ... ] }
   Map<String, List<Map<String, dynamic>>> _events = {};
-  bool _loadingTasks = true;
+  bool _loading = true;
+  String? _error;
 
   final _userService = UserService();
+  final _taskService = TaskService();
+
+  // ── Warna berdasarkan prioritas ──────────────────────────────────────────────
+  static const _colorByPrioritas = {
+    'tinggi' : Color(0xFFEF4444),
+    'sedang'  : Color(0xFFF59E0B),
+    'rendah'  : Color(0xFF10B981),
+  };
+
+  // ── Warna berdasarkan status submission (mahasiswa) ──────────────────────────
+  static const _colorBySubStatus = {
+    'submitted' : Color(0xFF10B981),
+    'graded'    : Color(0xFF6366F1),
+    'late'      : Color(0xFFEF4444),
+    'pending'   : Color(0xFFF59E0B),
+  };
 
   @override
   void initState() {
     super.initState();
     _userService.addListener(_onUserChanged);
     _userService.loadUser();
-    _loadTasksFromApi();
+    _loadCalendar();
   }
-
-  Future<void> _loadTasksFromApi() async {
-    try {
-      final tasks = await TaskService().getTasks();
-      final Map<String, List<Map<String, dynamic>>> newEvents = {};
-
-      for (var task in tasks) {
-        String? deadlineStr = task['deadline']?.toString();
-        if (deadlineStr != null && deadlineStr.length >= 10) {
-          // Asumsi format 'yyyy-MM-dd'
-          String dateKey = deadlineStr.substring(0, 10);
-          
-          bool isDone = task['status'] == 'done' || task['status'] == 'closed' || task['status'] == 'graded';
-          String title = task['nama_tugas']?.toString() ?? task['title']?.toString() ?? 'Tugas';
-          String time = task['jam']?.toString() ?? '23:59';
-          
-          String tag = 'Tugas';
-          Color tagColor = const Color(0xFF8B5CF6); // Default color assignment
-          
-          if (task['mata_kuliah'] != null && task['mata_kuliah'] is Map) {
-             tag = task['mata_kuliah']['nama_matkul']?.toString() ?? tag;
-          } else if (task['nama_matkul'] != null) {
-             tag = task['nama_matkul'].toString();
-          } else if (task['subject'] != null) {
-             tag = task['subject'].toString();
-          }
-
-          if (newEvents[dateKey] == null) {
-            newEvents[dateKey] = [];
-          }
-          newEvents[dateKey]!.add({
-            'title': title,
-            'time': time,
-            'tag': tag,
-            'tagColor': tagColor,
-            'done': isDone,
-            'due': null,
-            'hasProgress': false,
-          });
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _events = newEvents;
-          _loadingTasks = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loadingTasks = false;
-        });
-      }
-    }
-  }
-
-  String _key(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
-  List<Map<String, dynamic>> get _selectedEvents =>
-      _events[_key(_selectedDay)] ?? [];
 
   @override
   void dispose() {
@@ -107,16 +63,66 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (mounted) setState(() {});
   }
 
-  // ── Navigation ────────────────────────────────────────────────────────────────
-  void _prevMonth() => setState(() {
-        _focusedMonth =
-            DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+  // ── Load kalender dari endpoint baru /calendar ────────────────────────────────
+  Future<void> _loadCalendar() async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final data = await _taskService.getCalendarEvents(
+        month: _focusedMonth.month,
+        year: _focusedMonth.year,
+      );
+
+      final rawEvents = data['events'] as Map<String, dynamic>? ?? {};
+      final Map<String, List<Map<String, dynamic>>> parsed = {};
+
+      rawEvents.forEach((dateKey, tasks) {
+        if (tasks is List) {
+          parsed[dateKey] = tasks
+              .whereType<Map<String, dynamic>>()
+              .toList();
+        }
       });
 
-  void _nextMonth() => setState(() {
-        _focusedMonth =
-            DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
-      });
+      if (mounted) {
+        setState(() {
+          _events = parsed;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Gagal memuat kalender';
+        });
+      }
+    }
+  }
+
+  // ── Navigasi bulan ────────────────────────────────────────────────────────────
+  void _prevMonth() {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1);
+    });
+    _loadCalendar();
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1);
+    });
+    _loadCalendar();
+  }
+
+  String _key(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  List<Map<String, dynamic>> get _selectedEvents =>
+      _events[_key(_selectedDay)] ?? [];
 
   // ── Build ─────────────────────────────────────────────────────────────────────
   @override
@@ -128,18 +134,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
           children: [
             _buildTopBar(),
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 12),
-                    _buildCalendarCard(),
-                    const SizedBox(height: 20),
-                    _loadingTasks 
-                        ? const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: _pink)))
-                        : _buildScheduleSection(),
-                    const SizedBox(height: 80),
-                  ],
+              child: RefreshIndicator(
+                color: _pink,
+                onRefresh: _loadCalendar,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      _buildCalendarCard(),
+                      const SizedBox(height: 20),
+                      if (_loading)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: CircularProgressIndicator(color: _pink),
+                          ),
+                        )
+                      else if (_error != null)
+                        _buildErrorState()
+                      else
+                        _buildScheduleSection(),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -156,7 +175,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  // ── Top Bar ────────────────────────────────────────────────────────────────────
+  // ── Top Bar ───────────────────────────────────────────────────────────────────
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -250,15 +269,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildMonthHeader() {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
     return Row(
       children: [
         Text(
           '${months[_focusedMonth.month - 1]} ${_focusedMonth.year}',
           style: const TextStyle(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Color(0xFF1A1A1A),
           ),
@@ -268,16 +287,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
           onTap: _prevMonth,
           child: Container(
             padding: const EdgeInsets.all(6),
-            child: const Icon(Icons.chevron_left,
-                color: Color(0xFF666666), size: 22),
+            child: const Icon(Icons.chevron_left, color: Color(0xFF666666), size: 22),
           ),
         ),
         GestureDetector(
           onTap: _nextMonth,
           child: Container(
             padding: const EdgeInsets.all(6),
-            child: const Icon(Icons.chevron_right,
-                color: Color(0xFF666666), size: 22),
+            child: const Icon(Icons.chevron_right, color: Color(0xFF666666), size: 22),
           ),
         ),
       ],
@@ -285,7 +302,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildDayHeaders() {
-    const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: days
@@ -295,7 +312,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   child: Text(
                     d,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF999999),
                     ),
@@ -308,8 +325,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildCalendarGrid() {
     final firstDay = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
-    // weekday: 1=Mon ... 7=Sun. We want Sun=0
-    int startOffset = firstDay.weekday % 7;
+    int startOffset = firstDay.weekday % 7; // Sun=0
     final daysInMonth =
         DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0).day;
     final daysInPrevMonth =
@@ -329,8 +345,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     // Current month
     for (int d = 1; d <= daysInMonth; d++) {
-      final date =
-          DateTime(_focusedMonth.year, _focusedMonth.month, d);
+      final date = DateTime(_focusedMonth.year, _focusedMonth.month, d);
+      final key = _key(date);
+      final eventsOnDay = _events[key] ?? [];
+
+      // Ambil warna dot: prioritas tertinggi menang
+      Color? dotColor;
+      if (eventsOnDay.isNotEmpty) {
+        final hasTinggi = eventsOnDay.any((e) => e['prioritas'] == 'tinggi');
+        final hasSedang = eventsOnDay.any((e) => e['prioritas'] == 'sedang');
+        dotColor = hasTinggi
+            ? _colorByPrioritas['tinggi']
+            : hasSedang
+                ? _colorByPrioritas['sedang']
+                : _colorByPrioritas['rendah'];
+      }
+
       cells.add(_CalDay(
         date: date,
         isCurrentMonth: true,
@@ -340,11 +370,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
         isSelected: date.year == _selectedDay.year &&
             date.month == _selectedDay.month &&
             date.day == _selectedDay.day,
-        hasEvent: _events.containsKey(_key(date)),
+        hasEvent: eventsOnDay.isNotEmpty,
+        eventCount: eventsOnDay.length,
+        dotColor: dotColor,
       ));
     }
 
-    // Next month filler to complete grid
+    // Next month filler
     int remaining = 7 - (cells.length % 7);
     if (remaining != 7) {
       for (int d = 1; d <= remaining; d++) {
@@ -381,24 +413,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
           : null,
       child: SizedBox(
         width: 36,
-        height: 48,
+        height: 52,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Day number with circle
             Container(
               width: 34,
               height: 34,
               decoration: cell.isToday
-                  ? const BoxDecoration(
-                      color: _pink,
-                      shape: BoxShape.circle,
-                    )
+                  ? const BoxDecoration(color: _pink, shape: BoxShape.circle)
                   : (cell.isSelected && cell.isCurrentMonth
                       ? BoxDecoration(
                           shape: BoxShape.circle,
-                          border:
-                              Border.all(color: _pink, width: 1.5),
+                          border: Border.all(color: _pink, width: 1.5),
                         )
                       : null),
               child: Center(
@@ -414,18 +441,63 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
             ),
-            // Event dot
             const SizedBox(height: 2),
-            cell.hasEvent && cell.isCurrentMonth
-                ? Container(
+            // Dot(s) event
+            if (cell.hasEvent && cell.isCurrentMonth)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
                     width: 5,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: cell.isToday ? Colors.white70 : _pink,
+                      color: cell.isToday
+                          ? Colors.white70
+                          : (cell.dotColor ?? _pink),
                       shape: BoxShape.circle,
                     ),
-                  )
-                : const SizedBox(height: 5),
+                  ),
+                  if (cell.eventCount > 1) ...[
+                    const SizedBox(width: 2),
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: cell.isToday ? Colors.white54 : _pink.withValues(alpha: 0.4),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ]
+                ],
+              )
+            else
+              const SizedBox(height: 5),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Error State ───────────────────────────────────────────────────────────────
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+        child: Column(
+          children: [
+            Icon(Icons.cloud_off_outlined, size: 52, color: Colors.grey[300]),
+            const SizedBox(height: 12),
+            Text(
+              _error ?? 'Terjadi kesalahan',
+              style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: _loadCalendar,
+              icon: const Icon(Icons.refresh, color: _pink),
+              label: const Text('Coba lagi', style: TextStyle(color: _pink)),
+            ),
           ],
         ),
       ),
@@ -434,12 +506,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   // ── Schedule Section ──────────────────────────────────────────────────────────
   Widget _buildScheduleSection() {
-    const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+    const monthsShort = [
+      'JAN','FEB','MAR','APR','MEI','JUN',
+      'JUL','AGU','SEP','OKT','NOV','DES'
     ];
     final label =
-        '${months[_selectedDay.month - 1]} ${_selectedDay.day} SCHEDULE';
+        '${monthsShort[_selectedDay.month - 1]} ${_selectedDay.day} — JADWAL';
     final count = _selectedEvents.length;
 
     return Padding(
@@ -460,14 +532,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0F0F0),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '$count Task${count != 1 ? 's' : ''}',
+                  '$count Tugas',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -482,10 +553,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
             _buildEmptyState()
           else
             ...List.generate(_selectedEvents.length, (i) {
-              final t = _selectedEvents[i];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _buildEventCard(t),
+                child: _buildEventCard(_selectedEvents[i]),
               );
             }),
         ],
@@ -499,11 +569,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Column(
           children: [
-            Icon(Icons.event_available_outlined,
-                size: 52, color: Colors.grey[300]),
+            Icon(Icons.event_available_outlined, size: 52, color: Colors.grey[300]),
             const SizedBox(height: 12),
             Text(
-              'Tidak ada tugas hari ini',
+              'Tidak ada tugas pada hari ini',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[400],
@@ -517,27 +586,63 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildEventCard(Map<String, dynamic> task) {
-    final bool done = task['done'] == true;
-    final bool highlighted = task['due'] != null;
-    final String? tag = task['tag'] as String?;
-    final Color tagColor =
-        (task['tagColor'] as Color?) ?? const Color(0xFF9E9E9E);
-    final String? time = task['time'] as String?;
-    final String? location = task['location'] as String?;
-    final String? due = task['due'] as String?;
-    final bool hasProgress = task['hasProgress'] == true;
-    final double progress =
-        (task['progress'] as num?)?.toDouble() ?? 0.5;
+    final String title = task['nama_tugas']?.toString() ?? 'Tugas';
+    final String matkul = task['nama_matkul']?.toString() ?? '';
+    final String jam = task['jam']?.toString() ?? '23:59';
+    final String prioritas = task['prioritas']?.toString() ?? 'sedang';
+    final String taskStatus = task['status']?.toString() ?? 'active';
+    // sub_status hanya ada untuk mahasiswa; dosen lihat task status
+    final String subStatus = task['sub_status']?.toString() ?? taskStatus;
+    final int? grade = task['grade'] as int?;
+
+    // Warna prioritas
+    final Color priColor = _colorByPrioritas[prioritas] ?? const Color(0xFF9E9E9E);
+
+    // Label & warna status badge
+    String statusLabel;
+    Color statusColor;
+    if (task.containsKey('sub_status')) {
+      // Mahasiswa view
+      switch (subStatus) {
+        case 'submitted':
+          statusLabel = 'Dikumpulkan';
+          statusColor = _colorBySubStatus['submitted']!;
+          break;
+        case 'graded':
+          statusLabel = grade != null ? 'Nilai: $grade' : 'Dinilai';
+          statusColor = _colorBySubStatus['graded']!;
+          break;
+        case 'late':
+          statusLabel = 'Terlambat';
+          statusColor = _colorBySubStatus['late']!;
+          break;
+        default:
+          statusLabel = 'Belum';
+          statusColor = _colorBySubStatus['pending']!;
+      }
+    } else {
+      // Dosen view
+      final submitted = task['submitted_count'] ?? 0;
+      final total = task['total_students'] ?? 0;
+      statusLabel = '$submitted/$total';
+      statusColor = taskStatus == 'graded'
+          ? _colorBySubStatus['graded']!
+          : taskStatus == 'closed'
+              ? _colorBySubStatus['late']!
+              : _colorBySubStatus['pending']!;
+    }
+
+    final bool isDone = subStatus == 'submitted' ||
+        subStatus == 'graded' ||
+        taskStatus == 'graded';
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: highlighted
-            ? Border(
-                left: BorderSide(color: _pink, width: 3.5),
-              )
-            : null,
+        border: Border(
+          left: BorderSide(color: priColor, width: 4),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -547,141 +652,123 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-            highlighted ? 14 : 16, 14, 16, hasProgress ? 0 : 14),
-        child: Column(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // Radio
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: _buildRadio(isDone, priColor),
+            ),
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isDone
+                          ? const Color(0xFFAAAAAA)
+                          : const Color(0xFF1A1A1A),
+                      decoration: isDone ? TextDecoration.lineThrough : null,
+                      decorationColor: const Color(0xFFAAAAAA),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (matkul.isNotEmpty)
+                    Row(children: [
+                      const Icon(Icons.book_outlined,
+                          size: 12, color: Color(0xFF999999)),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          matkul,
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xFF999999)),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ]),
+                  const SizedBox(height: 2),
+                  Row(children: [
+                    const Icon(Icons.access_time_rounded,
+                        size: 12, color: Color(0xFF999999)),
+                    const SizedBox(width: 4),
+                    Text(
+                      jam,
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF999999)),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Status badge
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // Radio-style checkbox
-                Padding(
-                  padding: const EdgeInsets.only(top: 1),
-                  child: _buildRadio(done),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        task['title']?.toString() ?? '',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: done
-                              ? const Color(0xFFAAAAAA)
-                              : const Color(0xFF1A1A1A),
-                          decoration:
-                              done ? TextDecoration.lineThrough : null,
-                          decorationColor: const Color(0xFFAAAAAA),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      if (time != null)
-                        Row(
-                          children: [
-                            const Icon(Icons.access_time_rounded,
-                                size: 13, color: Color(0xFF999999)),
-                            const SizedBox(width: 4),
-                            Text(
-                              time,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF999999)),
-                            ),
-                          ],
-                        ),
-                      if (location != null)
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on_outlined,
-                                size: 13, color: Color(0xFF999999)),
-                            const SizedBox(width: 4),
-                            Text(
-                              location,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF999999)),
-                            ),
-                          ],
-                        ),
-                      if (due != null)
-                        Row(
-                          children: [
-                            const Icon(Icons.info_outline_rounded,
-                                size: 13, color: _pink),
-                            const SizedBox(width: 4),
-                            Text(
-                              due,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: _pink,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ),
-                // Tag badge
-                if (tag != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: tagColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      tag,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: tagColor,
-                      ),
+                  child: Text(
+                    statusLabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
                     ),
                   ),
+                ),
+                const SizedBox(height: 6),
+                // Prioritas badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: priColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    prioritas[0].toUpperCase() + prioritas.substring(1),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: priColor,
+                    ),
+                  ),
+                ),
               ],
             ),
-            if (hasProgress) ...[
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 4,
-                  backgroundColor: const Color(0xFFEEEEEE),
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(_pink),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRadio(bool done) {
+  Widget _buildRadio(bool done, Color color) {
     return Container(
       width: 22,
       height: 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: done ? _pink : const Color(0xFFDDDDDD),
+          color: done ? color : const Color(0xFFDDDDDD),
           width: 2,
         ),
-        color: done ? _pink.withValues(alpha: 0.1) : Colors.transparent,
+        color: done ? color.withValues(alpha: 0.1) : Colors.transparent,
       ),
       child: done
-          ? const Center(
-              child: Icon(Icons.circle, color: _pink, size: 10),
-            )
+          ? Center(child: Icon(Icons.circle, color: color, size: 10))
           : null,
     );
   }
@@ -711,25 +798,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(_navLabels.length, (i) {
-          // Calendar tab (index 2) is always selected
           final selected = i == 2;
           return GestureDetector(
             onTap: () {
               if (i == 0) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
-                );
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (_) => const DashboardScreen()));
               } else if (i == 1) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TaskScreen()),
-                );
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (_) => const TaskScreen()));
               } else if (i == 3) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SocialScreen()),
-                );
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (_) => const SocialScreen()));
               }
             },
             behavior: HitTestBehavior.opaque,
@@ -770,6 +850,8 @@ class _CalDay {
   final bool isToday;
   final bool isSelected;
   final bool hasEvent;
+  final int eventCount;
+  final Color? dotColor;
 
   const _CalDay({
     required this.date,
@@ -777,5 +859,7 @@ class _CalDay {
     this.isToday = false,
     this.isSelected = false,
     this.hasEvent = false,
+    this.eventCount = 0,
+    this.dotColor,
   });
 }

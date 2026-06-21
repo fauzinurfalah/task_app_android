@@ -188,4 +188,29 @@ class TaskService {
 
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
+
+  /// Mengembalikan Map: {'events': {'2026-06-21': [...tasks]}, 'summary': {'2026-06-21': 2}}
+  Future<Map<String, dynamic>> getCalendarEvents({int? month, int? year}) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String token = prefs.getString('token') ?? '';
+    String role = prefs.getString('role') ?? 'mahasiswa';
+
+    final now = DateTime.now();
+    final m = month ?? now.month;
+    final y = year ?? now.year;
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/$role/calendar?month=$m&year=$y'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data;
+    }
+    return {'events': {}, 'summary': {}};
+  }
 }
