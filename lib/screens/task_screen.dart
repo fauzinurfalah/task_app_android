@@ -9,6 +9,7 @@ import 'social_screen.dart';
 import 'profile_screen.dart';
 import 'task_detail_screen.dart';
 import 'join_task_helper.dart';
+import 'personal_task_screen.dart';
 
 class TaskScreen extends StatefulWidget {
   const TaskScreen({super.key});
@@ -23,6 +24,7 @@ class _TaskScreenState extends State<TaskScreen> {
   List _apiTasks = [];
   bool _loading = true;
   String _role = 'mahasiswa';
+  bool _fabOpen = false;
   final _userService = UserService();
 
   @override
@@ -81,23 +83,20 @@ class _TaskScreenState extends State<TaskScreen> {
           ],
         ),
       ),
-      floatingActionButton: _role == 'dosen' ? FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddTaskScreen()),
-          );
-          if (result == true) _loadTasks();
-        },
-        backgroundColor: _pink,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ) : FloatingActionButton.extended(
-        onPressed: _showJoinTaskDialog,
-        backgroundColor: _pink,
-        icon: const Icon(Icons.group_add, color: Colors.white),
-        label: const Text('Join Task', style: TextStyle(color: Colors.white)),
-      ),
+      floatingActionButton: _role == 'dosen'
+          ? FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddTaskScreen()),
+                );
+                if (result == true) _loadTasks();
+              },
+              backgroundColor: _pink,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add, color: Colors.white, size: 28),
+            )
+          : _buildExpandableFab(),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -528,6 +527,50 @@ class _TaskScreenState extends State<TaskScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // ── FAB ──────────────────────────────────────────────────────────────────────
+
+  Widget _buildExpandableFab() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (_fabOpen) ...[
+          FloatingActionButton.extended(
+            heroTag: 'fab_personal',
+            onPressed: () {
+              setState(() => _fabOpen = false);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PersonalTaskScreen()),
+              );
+            },
+            backgroundColor: Colors.white,
+            icon: const Icon(Icons.person_pin_outlined, color: _pink),
+            label: const Text('Tugas Mandiri', style: TextStyle(color: _pink, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'fab_join',
+            onPressed: () {
+              setState(() => _fabOpen = false);
+              _showJoinTaskDialog();
+            },
+            backgroundColor: Colors.white,
+            icon: const Icon(Icons.group_add, color: _pink),
+            label: const Text('Join Tugas', style: TextStyle(color: _pink, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 16),
+        ],
+        FloatingActionButton(
+          heroTag: 'fab_main',
+          onPressed: () => setState(() => _fabOpen = !_fabOpen),
+          backgroundColor: _pink,
+          child: Icon(_fabOpen ? Icons.close : Icons.add, color: Colors.white, size: 28),
+        ),
+      ],
     );
   }
 
