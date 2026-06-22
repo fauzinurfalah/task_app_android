@@ -7,7 +7,7 @@ import 'login_screen.dart';
 import 'task_screen.dart';
 import 'add_task_screen.dart';
 import 'calendar_screen.dart';
-import 'social_screen.dart';
+
 import 'profile_screen.dart';
 import 'join_task_helper.dart';
 
@@ -172,29 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
-        const SizedBox(width: 12),
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
-          ),
-          child: _buildAvatarWidget(),
-        ),
       ],
-    );
-  }
-
-  Widget _buildAvatarWidget() {
-    final photoUrl = _userService.photoUrl;
-    return CircleAvatar(
-      radius: 18,
-      backgroundColor: const Color(0xFF5C5C5C),
-      backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-          ? NetworkImage(photoUrl)
-          : null,
-      child: (photoUrl == null || photoUrl.isEmpty)
-          ? const Icon(Icons.person, color: Colors.white, size: 18)
-          : null,
     );
   }
 
@@ -661,12 +639,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── BOTTOM NAV ────────────────────────────────────────────────────────────
 
-  static const _navLabels = ['Dashboard', 'Tasks', 'Calendar', 'Social'];
+  static const _navLabels = ['Dashboard', 'Tasks', 'Calendar', 'Profile'];
   static const _navIcons = [
     Icons.dashboard_rounded,
     Icons.check_box_outlined,
     Icons.calendar_month_outlined,
-    Icons.people_outline,
+    Icons.person_outline,
   ];
 
   Widget _buildBottomNav() {
@@ -701,7 +679,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               } else if (i == 3) {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const SocialScreen()),
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
                 );
               } else {
                 setState(() => _selectedIndex = i);

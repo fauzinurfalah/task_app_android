@@ -5,7 +5,7 @@ import 'task_screen.dart';
 import 'calendar_screen.dart';
 import 'account_settings_screen.dart';
 import 'login_screen.dart';
-import 'social_screen.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -409,12 +409,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── BOTTOM NAV ────────────────────────────────────────────────────────────
 
-  static const _navLabels = ['Dashboard', 'Tasks', 'Calendar', 'Social'];
+  static const _navLabels = ['Dashboard', 'Tasks', 'Calendar', 'Profile'];
   static const _navIcons = [
     Icons.dashboard_rounded,
     Icons.check_box_outlined,
     Icons.calendar_month_outlined,
-    Icons.people_outline,
+    Icons.person_outline,
   ];
 
   Widget _buildBottomNav(BuildContext context) {
@@ -443,7 +443,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               } else if (i == 2) {
                 Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CalendarScreen()));
               } else if (i == 3) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SocialScreen()));
+                // already here
               }
             },
             behavior: HitTestBehavior.opaque,
