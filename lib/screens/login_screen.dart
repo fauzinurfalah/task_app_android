@@ -349,48 +349,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Tombol Masuk dengan Google
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            // TODO: logic login Google
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Color(0xFFE0E0E0),
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            backgroundColor: Colors.white,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Google "G" logo resmi
-                              SvgPicture.asset(
-                                'assets/images/google_logo.svg',
-                                width: 22,
-                                height: 22,
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'Masuk dengan Google',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF444444),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
                       // Belum punya akun?
                       Center(
                         child: Text(
