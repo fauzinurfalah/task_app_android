@@ -109,8 +109,7 @@ class _TaskScreenState extends State<TaskScreen> {
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Stack(
-        alignment: Alignment.center,
+      child: Row(
         children: [
           const SizedBox(width: 26), // balance right side
           const Expanded(

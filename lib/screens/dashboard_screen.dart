@@ -140,10 +140,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ── TOP BAR ───────────────────────────────────────────────────────────────
 
   Widget _buildTopBar() {
-    return Stack(
-      alignment: Alignment.center,
+    return Row(
       children: [
-        
         const Expanded(
           child: Center(
             child: Text(
@@ -811,6 +809,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
+
+  Widget _buildAvatarWidget({double radius = 18}) {
+    final photoUrl = _userService.photoUrl;
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: const Color(0xFF5C5C5C),
+      backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+          ? NetworkImage(photoUrl)
+          : null,
+      child: (photoUrl == null || photoUrl.isEmpty)
+          ? Icon(Icons.person, color: Colors.white, size: radius)
+          : null,
+    );
+  }
 
   List<Map<String, dynamic>> _parseTags(dynamic raw) {
     if (raw == null) {

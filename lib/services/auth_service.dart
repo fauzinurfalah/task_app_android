@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
 
-  final String baseUrl = kIsWeb ? "http://localhost:8000/api" : "http://10.0.2.2:8000/api";
+  final String baseUrl = "http://3.104.52.205/api";
 
   Future<bool> login(String email, String password) async {
 
