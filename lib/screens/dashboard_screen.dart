@@ -76,7 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'id': t['id'],
         'nama_tugas': t['title'],
         'nama_matkul': t['course'],
-        'deadline': t['due'],
+        'deadline': '${t['due']?.toString().split('T')[0]} ${t['dueTime']?.toString().substring(0, 5) ?? '23:59'}',
         'jam': t['dueTime']?.toString().substring(0, 5) ?? '23:59',
         'status': t['status'] == 'completed' ? 'Selesai' : 'Belum Selesai',
         'is_personal': true,

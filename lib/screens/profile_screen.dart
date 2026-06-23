@@ -167,7 +167,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'COMPUTER SCIENCE STUDENT',
+          'STUDENT',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,

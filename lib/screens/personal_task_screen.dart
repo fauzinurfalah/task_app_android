@@ -158,7 +158,7 @@ class _PersonalTaskScreenState extends State<PersonalTaskScreen> {
   Widget _buildTaskCard(Map<String, dynamic> task) {
     final isDone = task['status'] == 'completed';
     final pri = _priCfg[task['priority'] ?? 'medium'] ?? _priCfg['medium']!;
-    final due = task['due']?.toString() ?? '';
+    final due = task['due']?.toString().split('T')[0] ?? '';
     final dueTime = task['dueTime']?.toString().substring(0, 5) ?? '23:59';
     final title = task['title']?.toString() ?? '';
     final course = task['course']?.toString() ?? 'Umum';
