@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/user_service.dart';
 import '../services/task_service.dart';
-import 'add_task_screen.dart';
->>>>>>> efd431e3173a9fe7e0d368f4c20f597b37299be6
 import 'dashboard_screen.dart';
 import 'task_screen.dart';
 import 'social_screen.dart';
@@ -166,10 +164,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => JoinTaskHelper.show(context),
+        onPressed: () => JoinTaskHelper.show(context, onSuccess: _loadCalendar),
         backgroundColor: _pink,
-        icon: const Icon(Icons.group_add, color: Colors.white),
-        label: const Text('Join Task', style: TextStyle(color: Colors.white)),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: const Text('Tambah Tugas', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -179,58 +177,60 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const Expanded(
-            child: Center(
-              child: Text(
-                'Tetugas',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: _pink,
-                  letterSpacing: 0.5,
-                ),
+          const Center(
+            child: Text(
+              'Tetugas',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: _pink,
+                letterSpacing: 0.5,
               ),
             ),
           ),
-          Stack(
-            children: [
-              const Icon(Icons.notifications_outlined,
-                  color: Color(0xFF333333), size: 26),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: _pink,
-                    shape: BoxShape.circle,
+          Positioned(
+            right: 0,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Belum ada notifikasi baru'),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+                  },
+                  child: const Icon(Icons.notifications_outlined,
+                      color: Color(0xFF333333), size: 26),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
                   ),
+                  child: Builder(builder: (ctx) {
+                    final photoUrl = _userService.photoUrl;
+                    return CircleAvatar(
+                      radius: 18,
+                      backgroundColor: const Color(0xFF5C5C5C),
+                      backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                          ? NetworkImage(photoUrl)
+                          : null,
+                      child: (photoUrl == null || photoUrl.isEmpty)
+                          ? const Icon(Icons.person, color: Colors.white, size: 18)
+                          : null,
+                    );
+                  }),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              ],
             ),
-            child: Builder(builder: (ctx) {
-              final photoUrl = _userService.photoUrl;
-              return CircleAvatar(
-                radius: 18,
-                backgroundColor: const Color(0xFF5C5C5C),
-                backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                    ? NetworkImage(photoUrl)
-                    : null,
-                child: (photoUrl == null || photoUrl.isEmpty)
-                    ? const Icon(Icons.person, color: Colors.white, size: 18)
-                    : null,
-              );
-            }),
           ),
         ],
       ),

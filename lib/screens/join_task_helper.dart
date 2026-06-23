@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import '../services/task_service.dart';
 import 'scan_qr_screen.dart';
+import 'add_task_screen.dart';
 
-/// Helper untuk menampilkan bottom sheet join tugas dari screen manapun.
+/// Helper untuk menampilkan bottom sheet tambah/join tugas dari screen manapun.
+/// Untuk mahasiswa: Join Tugas (QR/Kode) + Tugas Mandiri
+/// Untuk dosen: Buat Tugas Baru
 /// Panggil: JoinTaskHelper.show(context, onSuccess: () => reload());
 class JoinTaskHelper {
   static const _pink = Color(0xFFE91E8C);
 
+  /// Tampilkan bottom sheet dengan opsi lengkap
   static void show(BuildContext context, {VoidCallback? onSuccess}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (_) => _JoinSheet(
         onScanQr: () async {
           Navigator.pop(context);
@@ -26,6 +31,14 @@ class JoinTaskHelper {
         onEnterCode: () {
           Navigator.pop(context);
           _showCodeDialog(context, onSuccess: onSuccess);
+        },
+        onCreateMandiri: () async {
+          Navigator.pop(context);
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddTaskScreen()),
+          );
+          if (result == true) onSuccess?.call();
         },
       ),
     );
@@ -75,9 +88,19 @@ class JoinTaskHelper {
 
   static Future<void> _doJoin(BuildContext context, String kode,
       {VoidCallback? onSuccess}) async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: _pink),
+      ),
+    );
+
     try {
       final res = await TaskService().joinTask(kode);
       if (!context.mounted) return;
+      Navigator.pop(context); // dismiss loading
       final msg = res['message']?.toString() ?? '';
       final ok = !msg.toLowerCase().contains('tidak') &&
           !msg.toLowerCase().contains('gagal') &&
@@ -85,13 +108,18 @@ class JoinTaskHelper {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok ? 'Berhasil join tugas!' : msg),
         backgroundColor: ok ? Colors.green : Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
       if (ok) onSuccess?.call();
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Gagal join tugas'),
+      Navigator.pop(context); // dismiss loading
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Gagal join tugas. Periksa koneksi.'),
         backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
     }
   }
@@ -102,7 +130,12 @@ class JoinTaskHelper {
 class _JoinSheet extends StatelessWidget {
   final VoidCallback onScanQr;
   final VoidCallback onEnterCode;
-  const _JoinSheet({required this.onScanQr, required this.onEnterCode});
+  final VoidCallback onCreateMandiri;
+  const _JoinSheet({
+    required this.onScanQr,
+    required this.onEnterCode,
+    required this.onCreateMandiri,
+  });
 
   static const _pink = Color(0xFFE91E8C);
 
@@ -131,7 +164,7 @@ class _JoinSheet extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1A1A1A))),
           const SizedBox(height: 6),
-          const Text('Pilih cara untuk bergabung ke tugas',
+          const Text('Pilih cara untuk menambah tugas',
               style: TextStyle(fontSize: 13, color: Color(0xFF888888))),
           const SizedBox(height: 24),
           _Opt(
@@ -148,6 +181,14 @@ class _JoinSheet extends StatelessWidget {
             title: 'Masukkan Kode',
             subtitle: 'Ketik kode tugas yang diberikan dosen',
             onTap: onEnterCode,
+          ),
+          const SizedBox(height: 12),
+          _Opt(
+            icon: Icons.edit_note_rounded,
+            color: const Color(0xFF0EA5E9),
+            title: 'Tugas Mandiri',
+            subtitle: 'Buat tugas pribadi untuk diri sendiri',
+            onTap: onCreateMandiri,
           ),
         ],
       ),

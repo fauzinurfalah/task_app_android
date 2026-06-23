@@ -74,9 +74,9 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF48FB1), // pink muda atas
-              Color(0xFFF8BBD9), // pink lebih terang tengah
-              Color(0xFFFCE4EC), // pink sangat terang bawah
+              Color(0xFFF48FB1),
+              Color(0xFFF8BBD9),
+              Color(0xFFFCE4EC),
             ],
             stops: [0.0, 0.5, 1.0],
           ),

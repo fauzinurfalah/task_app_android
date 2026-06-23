@@ -4,6 +4,7 @@ import 'dashboard_screen.dart';
 import 'task_screen.dart';
 import 'calendar_screen.dart';
 import 'profile_screen.dart';
+import 'join_task_helper.dart';
 
 class SocialScreen extends StatefulWidget {
   const SocialScreen({super.key});
@@ -73,7 +74,12 @@ class _SocialScreenState extends State<SocialScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFDFDFD),
-      floatingActionButton: _buildRanksFAB(),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => JoinTaskHelper.show(context),
+        backgroundColor: const Color(0xFFE91E8C),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: const Text('Tambah Tugas', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -102,41 +108,55 @@ class _SocialScreenState extends State<SocialScreen> {
 
   Widget _buildTopBar() {
     final photoUrl = _userService.photoUrl;
-    return Row(
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        IconButton(
-          icon: const Icon(Icons.menu, color: Color(0xFFE91E8C)),
-          onPressed: () {},
-        ),
-        const Expanded(
-          child: Center(
-            child: Text(
-              'Tetugas',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFE91E8C),
-                letterSpacing: 0.5,
-              ),
+        const Center(
+          child: Text(
+            'Tetugas',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFE91E8C),
+              letterSpacing: 0.5,
             ),
           ),
         ),
-        const Icon(Icons.notifications_outlined, color: Color(0xFF333333), size: 26),
-        const SizedBox(width: 12),
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
-          ),
-          child: CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFF5C5C5C),
-            backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                ? NetworkImage(photoUrl)
-                : null,
-            child: (photoUrl == null || photoUrl.isEmpty)
-                ? const Icon(Icons.person, color: Colors.white, size: 18)
-                : null,
+        Positioned(
+          right: 0,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Belum ada notifikasi baru'),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.notifications_outlined, color: Color(0xFF333333), size: 26),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                ),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: const Color(0xFF5C5C5C),
+                  backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                      ? NetworkImage(photoUrl)
+                      : null,
+                  child: (photoUrl == null || photoUrl.isEmpty)
+                      ? const Icon(Icons.person, color: Colors.white, size: 18)
+                      : null,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -422,30 +442,7 @@ class _SocialScreenState extends State<SocialScreen> {
     );
   }
 
-  // ── RANKS FAB ──────────────────────────────────────────────────────────────
 
-  Widget _buildRanksFAB() {
-    return FloatingActionButton(
-      onPressed: () {},
-      backgroundColor: const Color(0xFFE91E8C),
-      shape: const CircleBorder(),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.leaderboard, color: Colors.white, size: 18),
-          Text(
-            'RANKS',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 7,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ── BOTTOM NAV ────────────────────────────────────────────────────────────
 

@@ -81,23 +81,25 @@ class _TaskScreenState extends State<TaskScreen> {
           ],
         ),
       ),
-      floatingActionButton: _role == 'dosen' ? FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddTaskScreen()),
-          );
-          if (result == true) _loadTasks();
-        },
-        backgroundColor: _pink,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ) : FloatingActionButton.extended(
-        onPressed: _showJoinTaskDialog,
-        backgroundColor: _pink,
-        icon: const Icon(Icons.group_add, color: Colors.white),
-        label: const Text('Join Task', style: TextStyle(color: Colors.white)),
-      ),
+      floatingActionButton: _role == 'dosen'
+          ? FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddTaskScreen()),
+                );
+                if (result == true) _loadTasks();
+              },
+              backgroundColor: _pink,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add, color: Colors.white, size: 28),
+            )
+          : FloatingActionButton.extended(
+              onPressed: _showJoinTaskDialog,
+              backgroundColor: _pink,
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text('Tambah Tugas', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            ),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -107,59 +109,60 @@ class _TaskScreenState extends State<TaskScreen> {
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const SizedBox(width: 26), // balance right side
-          const Expanded(
-            child: Center(
-              child: Text(
-                'Tetugas',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: _pink,
-                  letterSpacing: 0.5,
-                ),
+          const Center(
+            child: Text(
+              'Tetugas',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: _pink,
+                letterSpacing: 0.5,
               ),
             ),
           ),
-          Stack(
-            children: [
-              const Icon(Icons.notifications_outlined,
-                  color: Color(0xFF333333), size: 26),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: _pink,
-                    shape: BoxShape.circle,
+          Positioned(
+            right: 0,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Belum ada notifikasi baru'),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+                  },
+                  child: const Icon(Icons.notifications_outlined,
+                      color: Color(0xFF333333), size: 26),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
                   ),
+                  child: Builder(builder: (ctx) {
+                    final photoUrl = _userService.photoUrl;
+                    return CircleAvatar(
+                      radius: 18,
+                      backgroundColor: const Color(0xFF5C5C5C),
+                      backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                          ? NetworkImage(photoUrl)
+                          : null,
+                      child: (photoUrl == null || photoUrl.isEmpty)
+                          ? const Icon(Icons.person, color: Colors.white, size: 18)
+                          : null,
+                    );
+                  }),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              ],
             ),
-            child: Builder(builder: (ctx) {
-              final photoUrl = _userService.photoUrl;
-              return CircleAvatar(
-                radius: 18,
-                backgroundColor: const Color(0xFF5C5C5C),
-                backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                    ? NetworkImage(photoUrl)
-                    : null,
-                child: (photoUrl == null || photoUrl.isEmpty)
-                    ? const Icon(Icons.person, color: Colors.white, size: 18)
-                    : null,
-              );
-            }),
           ),
         ],
       ),
@@ -210,17 +213,6 @@ class _TaskScreenState extends State<TaskScreen> {
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Color(0xFF1A1A1A),
-          ),
-        ),
-        GestureDetector(
-          onTap: () {},
-          child: const Text(
-            'Lihat Semua',
-            style: TextStyle(
-              fontSize: 13,
-              color: _pink,
-              fontWeight: FontWeight.w500,
-            ),
           ),
         ),
       ],

@@ -19,8 +19,7 @@ class NotificationService {
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
-  final String _baseUrl =
-      kIsWeb ? 'http://localhost:8000/api' : 'http://10.0.2.2:8000/api';
+  final String _baseUrl = 'http://3.104.52.205/api';
 
   /// Inisialisasi FCM: minta izin, setup handler, kirim token ke Laravel.
   Future<void> initialize() async {

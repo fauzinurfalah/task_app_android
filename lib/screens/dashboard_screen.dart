@@ -91,23 +91,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? _buildDashboardBody()
             : _buildPlaceholder(_navLabels[_selectedIndex]),
       ),
-      floatingActionButton: _role == 'dosen' ? FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddTaskScreen()),
-          );
-          if (result == true) _loadTasks();
-        },
-        backgroundColor: _pink,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ) : FloatingActionButton.extended(
-        onPressed: () => JoinTaskHelper.show(context, onSuccess: _loadTasks),
-        backgroundColor: _pink,
-        icon: const Icon(Icons.group_add, color: Colors.white),
-        label: const Text('Join Task', style: TextStyle(color: Colors.white)),
-      ),
+      floatingActionButton: _role == 'dosen'
+          ? FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddTaskScreen()),
+                );
+                if (result == true) _loadTasks();
+              },
+              backgroundColor: _pink,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add, color: Colors.white, size: 28),
+            )
+          : FloatingActionButton.extended(
+              onPressed: () => JoinTaskHelper.show(context, onSuccess: _loadTasks),
+              backgroundColor: _pink,
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text('Tambah Tugas', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            ),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -138,47 +140,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ── TOP BAR ───────────────────────────────────────────────────────────────
 
   Widget _buildTopBar() {
-    return Row(
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        
-        const Expanded(
-          child: Center(
-            child: Text(
-              'Tetugas',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFE91E8C),
-                letterSpacing: 0.5,
-              ),
+        // Centered title
+        const Center(
+          child: Text(
+            'Tetugas',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFE91E8C),
+              letterSpacing: 0.5,
             ),
           ),
         ),
-        Stack(
-          children: [
-            const Icon(Icons.notifications_outlined,
-                color: Color(0xFF333333), size: 26),
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE91E8C),
-                  shape: BoxShape.circle,
+        // Right-side icons
+        Positioned(
+          right: 0,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Belum ada notifikasi baru'),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.notifications_outlined,
+                    color: Color(0xFF333333), size: 26),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
                 ),
+                child: _buildAvatarWidget(),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 12),
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ],
           ),
-          child: _buildAvatarWidget(),
         ),
       ],
     );
@@ -394,7 +399,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         GestureDetector(
-          onTap: () {},
+          onTap: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const TaskScreen()),
+            );
+          },
           child: const Text(
             'Lihat Semua',
             style: TextStyle(
