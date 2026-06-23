@@ -13,12 +13,15 @@ class UserService extends ChangeNotifier {
   String _name = '';
   String? _photoUrl;
   String? _email;
+  String? _nim;
 
   String get name => _name;
   String? get photoUrl => _photoUrl;
   String? get email => _email;
+  String? get nim => _nim;
 
-  final String baseUrl = 'http://3.104.52.205/api';
+  final String baseUrl =
+      kIsWeb ? 'http://localhost:8000/api' : 'http://10.0.2.2:8000/api';
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,6 +47,7 @@ class UserService extends ChangeNotifier {
         final user = data['user'] as Map<String, dynamic>? ?? {};
         _name = user['name'] ?? '';
         _email = user['email'] ?? '';
+        _nim = user['nim'] as String?;
         // foto_profil_url adalah accessor dari model User Laravel
         _photoUrl = user['foto_profil_url'] as String?;
         notifyListeners();
@@ -118,17 +122,12 @@ class UserService extends ChangeNotifier {
     }
   }
 
-  /// Update nama user via multipart POST ke Laravel /api/profile
-  Future<bool> updateName(String newName) async {
+  /// Update profile via multipart POST ke Laravel /api/profile
+  Future<bool> updateProfileData(String newName, String newEmail, String newNim) async {
     final token = await _getToken();
     if (token == null || token.isEmpty) return false;
 
     final prefs = await SharedPreferences.getInstance();
-    // Gunakan _email dari cache; kalau kosong load dulu dari API
-    if (_email == null || _email!.isEmpty) {
-      await loadUser();
-    }
-    final email = _email ?? '';
 
     try {
       final request = http.MultipartRequest(
@@ -142,7 +141,8 @@ class UserService extends ChangeNotifier {
       });
 
       request.fields['name'] = newName;
-      request.fields['email'] = email;
+      request.fields['email'] = newEmail;
+      request.fields['nim'] = newNim;
 
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
@@ -151,16 +151,18 @@ class UserService extends ChangeNotifier {
         final data = jsonDecode(response.body);
         final user = data['user'] as Map<String, dynamic>? ?? {};
         _name = user['name'] ?? newName;
+        _email = user['email'] ?? newEmail;
+        _nim = user['nim'] ?? newNim;
         // Simpan ke SharedPreferences
         await prefs.setString('name', _name);
         notifyListeners();
         return true;
       } else {
-        debugPrint('updateName error: ${response.statusCode} ${response.body}');
+        debugPrint('updateProfile error: ${response.statusCode} ${response.body}');
         return false;
       }
     } catch (e) {
-      debugPrint('UserService.updateName error: $e');
+      debugPrint('UserService.updateProfile error: $e');
       return false;
     }
   }

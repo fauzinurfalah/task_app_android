@@ -17,7 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _nimController = TextEditingController();
   final _authService = AuthService();
-  String _selectedRole = 'mahasiswa';
+
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
@@ -33,8 +33,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (_selectedRole == 'mahasiswa' && nim.isEmpty) {
-      setState(() => _errorMessage = 'NIM wajib diisi untuk Mahasiswa.');
+    if (nim.isEmpty) {
+      setState(() => _errorMessage = 'NIM wajib diisi.');
       return;
     }
 
@@ -49,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final success = await _authService.register(name, email, password, _selectedRole, nim: _selectedRole == 'mahasiswa' ? nim : null);
+      final success = await _authService.register(name, email, password, 'mahasiswa', nim: nim);
       if (!mounted) return;
 
       if (success) {
@@ -157,9 +157,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
 
-                      // Dropdown Role
                       const Text(
-                        'Daftar Sebagai :',
+                        'NIM :',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -167,47 +166,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE0E0E0)),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedRole,
-                            isExpanded: true,
-                            items: const [
-                              DropdownMenuItem(value: 'mahasiswa', child: Text('Mahasiswa')),
-                              DropdownMenuItem(value: 'dosen', child: Text('Dosen')),
-                            ],
-                            onChanged: (val) {
-                              if (val != null) setState(() => _selectedRole = val);
-                            },
-                          ),
-                        ),
+                      TextField(
+                        controller: _nimController,
+                        keyboardType: TextInputType.number,
+                        decoration: _inputDecoration(),
+                        style: const TextStyle(fontSize: 14),
                       ),
                       const SizedBox(height: 20),
-
-                      if (_selectedRole == 'mahasiswa') ...[
-                        const Text(
-                          'NIM :',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF444444),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _nimController,
-                          keyboardType: TextInputType.number,
-                          decoration: _inputDecoration(),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
 
                       // Label Username
                       const Text(
@@ -348,46 +313,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Tombol Daftar dengan Google
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            // TODO: logic register Google
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Color(0xFFE0E0E0),
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            backgroundColor: Colors.white,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SvgPicture.asset(
-                                'assets/images/google_logo.svg',
-                                width: 22,
-                                height: 22,
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'Daftar dengan Google',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF444444),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
 
                       // Sudah punya akun?
                       Center(

@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
 
-  final String baseUrl = "http://3.104.52.205/api";
+  final String baseUrl = kIsWeb ? "http://localhost:8000/api" : "http://10.0.2.2:8000/api";
 
   Future<bool> login(String email, String password) async {
 
@@ -23,6 +23,11 @@ class AuthService {
     if (response.statusCode == 200) {
 
       final data = jsonDecode(response.body);
+      
+      final role = data['user']?['role'] ?? data['role'];
+      if (role == 'dosen') {
+        throw Exception('khusus untuk Mahasiswa');
+      }
 
       SharedPreferences prefs =
           await SharedPreferences.getInstance();
@@ -74,5 +79,61 @@ class AuthService {
     }
 
     return false;
+  }
+
+  Future<Map<String, dynamic>> sendPasswordResetCode(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/forgot-password'),
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': data['message'] ?? 'Terjadi kesalahan.',
+      };
+    } catch (_) {
+      return {'success': false, 'message': 'Gagal terhubung ke server.'};
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyResetCode(String email, String code) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/verify-reset-code'),
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'code': code}),
+      );
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': data['message'] ?? 'Terjadi kesalahan.',
+      };
+    } catch (_) {
+      return {'success': false, 'message': 'Gagal terhubung ke server.'};
+    }
+  }
+
+  Future<Map<String, dynamic>> resetPassword(String email, String code, String newPassword) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/reset-password'),
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'code': code,
+          'password': newPassword,
+          'password_confirmation': newPassword,
+        }),
+      );
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': data['message'] ?? 'Terjadi kesalahan.',
+      };
+    } catch (_) {
+      return {'success': false, 'message': 'Gagal terhubung ke server.'};
+    }
   }
 }

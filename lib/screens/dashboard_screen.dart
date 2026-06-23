@@ -7,7 +7,7 @@ import 'login_screen.dart';
 import 'task_screen.dart';
 import 'add_task_screen.dart';
 import 'calendar_screen.dart';
-import 'social_screen.dart';
+
 import 'profile_screen.dart';
 import 'join_task_helper.dart';
 
@@ -143,63 +143,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Centered title
-        const Center(
-          child: Text(
-            'Tetugas',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFE91E8C),
-              letterSpacing: 0.5,
+        
+        const Expanded(
+          child: Center(
+            child: Text(
+              'Tetugas',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFE91E8C),
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ),
-        // Right-side icons
-        Positioned(
-          right: 0,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Belum ada notifikasi baru'),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
-                },
-                child: const Icon(Icons.notifications_outlined,
-                    color: Color(0xFF333333), size: 26),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+        Stack(
+          children: [
+            const Icon(Icons.notifications_outlined,
+                color: Color(0xFF333333), size: 26),
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE91E8C),
+                  shape: BoxShape.circle,
                 ),
-                child: _buildAvatarWidget(),
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(width: 12),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProfileScreen()),
           ),
+          child: _buildAvatarWidget(),
         ),
       ],
-    );
-  }
-
-  Widget _buildAvatarWidget() {
-    final photoUrl = _userService.photoUrl;
-    return CircleAvatar(
-      radius: 18,
-      backgroundColor: const Color(0xFF5C5C5C),
-      backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-          ? NetworkImage(photoUrl)
-          : null,
-      child: (photoUrl == null || photoUrl.isEmpty)
-          ? const Icon(Icons.person, color: Colors.white, size: 18)
-          : null,
     );
   }
 
@@ -671,12 +655,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── BOTTOM NAV ────────────────────────────────────────────────────────────
 
-  static const _navLabels = ['Dashboard', 'Tasks', 'Calendar', 'Social'];
+  static const _navLabels = ['Dashboard', 'Tasks', 'Calendar', 'Profile'];
   static const _navIcons = [
     Icons.dashboard_rounded,
     Icons.check_box_outlined,
     Icons.calendar_month_outlined,
-    Icons.people_outline,
+    Icons.person_outline,
   ];
 
   Widget _buildBottomNav() {
@@ -711,7 +695,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               } else if (i == 3) {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const SocialScreen()),
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
                 );
               } else {
                 setState(() => _selectedIndex = i);

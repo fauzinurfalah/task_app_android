@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import 'dashboard_screen.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,7 +51,24 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _errorMessage = 'Email atau password salah.');
       }
     } catch (e) {
-      setState(() => _errorMessage = 'Gagal terhubung ke server. Periksa koneksi Anda.');
+      if (e.toString().contains('khusus untuk Mahasiswa')) {
+        setState(() => _errorMessage = 'Akses ditolak: Hanya untuk Mahasiswa.');
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Peringatan'),
+            content: const Text('Akun Dosen tidak diizinkan masuk. Aplikasi ini khusus untuk Mahasiswa.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        setState(() => _errorMessage = 'Gagal terhubung ke server. Periksa koneksi Anda.');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -250,7 +268,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            // TODO: navigasi ke halaman lupa password
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                            );
                           },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.only(top: 4, right: 0),
@@ -328,48 +349,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                     letterSpacing: 1.2,
                                   ),
                                 ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Tombol Masuk dengan Google
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            // TODO: logic login Google
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Color(0xFFE0E0E0),
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            backgroundColor: Colors.white,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Google "G" logo resmi
-                              SvgPicture.asset(
-                                'assets/images/google_logo.svg',
-                                width: 22,
-                                height: 22,
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'Masuk dengan Google',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF444444),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                       ),
                       const SizedBox(height: 12),

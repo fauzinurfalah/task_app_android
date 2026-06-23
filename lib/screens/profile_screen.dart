@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import '../services/user_service.dart';
 import 'dashboard_screen.dart';
 import 'task_screen.dart';
 import 'calendar_screen.dart';
 import 'account_settings_screen.dart';
 import 'login_screen.dart';
-import 'social_screen.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,7 +17,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedIndex = 3;
   final _userService = UserService();
-  bool _uploading = false;
 
   @override
   void initState() {
@@ -37,32 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _pickAndUploadPhoto() async {
-    try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-      if (picked == null) return;
 
-      setState(() => _uploading = true);
-      final bytes = await picked.readAsBytes();
-      final ext = picked.name.split('.').last.toLowerCase();
-      await _userService.uploadPhoto(bytes, ext);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto profil berhasil diperbarui!')),
-        );
-      }
-    } catch (e) {
-      print('Pick/Upload photo error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _uploading = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,56 +118,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final photoUrl = _userService.photoUrl;
     return Column(
       children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _uploading ? null : _pickAndUploadPhoto,
-          child: Stack(
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFFCE4EC), width: 4),
-                ),
-                child: ClipOval(
-                  child: _uploading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFFE91E8C),
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : (photoUrl != null && photoUrl.isNotEmpty)
-                          ? Image.network(
-                              photoUrl,
-                              fit: BoxFit.cover,
-                              width: 100,
-                              height: 100,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.person,
-                                size: 48,
-                                color: Colors.grey,
-                              ),
-                            )
-                          : const Icon(Icons.person, size: 48, color: Colors.grey),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE91E8C),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 13),
-                ),
-              ),
-            ],
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFFCE4EC), width: 4),
           ),
+          child: _buildAvatarWidget(radius: 46),
         ),
         const SizedBox(height: 16),
         Text(
@@ -478,12 +409,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── BOTTOM NAV ────────────────────────────────────────────────────────────
 
-  static const _navLabels = ['Dashboard', 'Tasks', 'Calendar', 'Social'];
+  static const _navLabels = ['Dashboard', 'Tasks', 'Calendar', 'Profile'];
   static const _navIcons = [
     Icons.dashboard_rounded,
     Icons.check_box_outlined,
     Icons.calendar_month_outlined,
-    Icons.people_outline,
+    Icons.person_outline,
   ];
 
   Widget _buildBottomNav(BuildContext context) {
@@ -512,7 +443,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               } else if (i == 2) {
                 Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CalendarScreen()));
               } else if (i == 3) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SocialScreen()));
+                // already here
               }
             },
             behavior: HitTestBehavior.opaque,
