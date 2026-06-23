@@ -1,15 +1,54 @@
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Handler untuk pesan FCM yang diterima saat aplikasi di background.
-/// Harus berupa top-level function (tidak bisa jadi method class).
+// ─── Notification Channel (Android) ─────────────────────────────────────────
+const _androidChannel = AndroidNotificationChannel(
+  'deadline_reminders',        // Channel ID — harus sama dengan yang di FCM payload
+  'Pengingat Deadline',        // Nama yang ditampilkan di pengaturan HP
+  description: 'Notifikasi pengingat deadline tugas',
+  importance: Importance.max,  // Heads-up notification
+  playSound: true,
+);
+
+final _localNotif = FlutterLocalNotificationsPlugin();
+
+/// Handler untuk pesan FCM yang diterima saat aplikasi di background/terminated.
+/// Harus berupa top-level function.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Tidak perlu inisialisasi Firebase lagi karena sudah dilakukan di main().
-  debugPrint('[FCM Background] Message: ${message.notification?.title}');
+  debugPrint('[FCM Background] ${message.notification?.title}: ${message.notification?.body}');
+  // Background messages dari FCM data-only perlu ditampilkan manual:
+  if (message.notification == null && message.data.isNotEmpty) {
+    _showLocalNotification(message);
+  }
+}
+
+void _showLocalNotification(RemoteMessage message) {
+  final notification = message.notification;
+  final android = message.notification?.android;
+
+  if (notification == null) return;
+
+  _localNotif.show(
+    notification.hashCode,
+    notification.title,
+    notification.body,
+    NotificationDetails(
+      android: AndroidNotificationDetails(
+        _androidChannel.id,
+        _androidChannel.name,
+        channelDescription: _androidChannel.description,
+        importance: Importance.max,
+        priority: Priority.high,
+        icon: android?.smallIcon ?? '@mipmap/ic_launcher',
+        styleInformation: BigTextStyleInformation(notification.body ?? ''),
+      ),
+    ),
+  );
 }
 
 class NotificationService {
@@ -18,15 +57,22 @@ class NotificationService {
   NotificationService._internal();
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-
   final String _baseUrl = 'http://3.104.52.205/api';
+  bool _initialized = false;
 
-  /// Inisialisasi FCM: minta izin, setup handler, kirim token ke Laravel.
+  /// Inisialisasi FCM: channel Android, minta izin, setup handler, kirim token.
+  /// Aman dipanggil berkali-kali (guard dengan _initialized flag).
   Future<void> initialize() async {
-    // 1. Daftarkan background handler
+    if (_initialized) return;
+    _initialized = true;
+
+    // 1. Setup flutter_local_notifications (untuk foreground display)
+    await _setupLocalNotifications();
+
+    // 2. Daftarkan background handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // 2. Minta izin notifikasi (Android 13+ dan iOS)
+    // 3. Minta izin notifikasi (Android 13+ dan iOS)
     final settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
@@ -34,56 +80,74 @@ class NotificationService {
       provisional: false,
     );
 
-    debugPrint('[FCM] Permission status: ${settings.authorizationStatus}');
+    debugPrint('[FCM] Permission: ${settings.authorizationStatus}');
 
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      debugPrint('[FCM] Izin notifikasi ditolak.');
+      debugPrint('[FCM] Izin notifikasi ditolak oleh user.');
       return;
     }
 
-    // 3. Ambil FCM token dan kirim ke server
+    // 4. Ambil FCM token dan kirim ke server
     await _refreshAndSendToken();
 
-    // 4. Dengarkan pembaruan token (token bisa berubah)
+    // 5. Pantau pembaruan token (token FCM bisa berubah)
     _messaging.onTokenRefresh.listen((newToken) {
       debugPrint('[FCM] Token diperbarui: $newToken');
       _sendTokenToServer(newToken);
     });
 
-    // 5. Handler saat notifikasi diterima ketika app di foreground
+    // 6. Handler saat notifikasi diterima di FOREGROUND — tampilkan via local notif
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('[FCM Foreground] ${message.notification?.title}: ${message.notification?.body}');
-      // Notifikasi foreground akan ditampilkan melalui in-app banner
-      // yang bisa Anda handle via GlobalKey<NavigatorState> jika perlu.
+      _showLocalNotification(message);
     });
 
-    // 6. Handler saat user tap notifikasi (app di background → foreground)
+    // 7. Handler saat user tap notifikasi (app di background → foreground)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('[FCM Opened] ${message.notification?.title}');
-      // Bisa navigasi ke halaman tertentu di sini
+      // TODO: Navigasi ke halaman tugas jika diperlukan
     });
 
-    // 7. Cek apakah app dibuka dari notifikasi saat terminated
+    // 8. Cek apakah app dibuka dari notifikasi saat terminated
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       debugPrint('[FCM Initial] ${initialMessage.notification?.title}');
     }
   }
 
-  /// Ambil FCM token lalu kirim ke server Laravel.
+  Future<void> _setupLocalNotifications() async {
+    // Buat channel Android dengan priority tinggi
+    final androidPlugin = _localNotif.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.createNotificationChannel(_androidChannel);
+
+    const initSettings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    );
+    await _localNotif.initialize(initSettings);
+
+    // Pastikan FCM menampilkan notif saat foreground juga (iOS style)
+    await _messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+  }
+
   Future<void> _refreshAndSendToken() async {
     try {
       final token = await _messaging.getToken();
       if (token != null) {
         debugPrint('[FCM] Token: $token');
         await _sendTokenToServer(token);
+      } else {
+        debugPrint('[FCM] Gagal mendapatkan token (null).');
       }
     } catch (e) {
       debugPrint('[FCM] Gagal mendapatkan token: $e');
     }
   }
 
-  /// Kirim FCM token ke endpoint POST /api/fcm-token di Laravel.
   Future<void> _sendTokenToServer(String fcmToken) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -114,7 +178,7 @@ class NotificationService {
     }
   }
 
-  /// Panggil ini setelah user berhasil login agar token langsung terdaftar.
+  /// Panggil ini setelah user berhasil login agar token langsung terdaftar ulang.
   Future<void> syncTokenAfterLogin() async {
     await _refreshAndSendToken();
   }

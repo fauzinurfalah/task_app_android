@@ -40,8 +40,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (success) {
-        // Setelah login berhasil, daftarkan FCM token ke server
-        NotificationService().initialize();
+        // Setelah login berhasil, sync FCM token ke server dengan auth token yang sudah tersimpan
+        NotificationService().syncTokenAfterLogin();
         if (!mounted) return;
         Navigator.pushReplacement(
           context,

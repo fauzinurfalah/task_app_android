@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,8 +12,14 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Inisialisasi FCM: daftarkan background handler & minta izin notifikasi.
+  // Dipanggil di sini agar token selalu terdaftar ke server setiap kali
+  // aplikasi dibuka, tanpa menunggu proses login ulang.
+  await NotificationService().initialize();
+
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
