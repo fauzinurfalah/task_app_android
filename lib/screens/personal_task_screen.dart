@@ -7,10 +7,10 @@ const _bg = Color(0xFFF7F7F7);
 
 // ─── Priority config ────────────────────────────────────────────────────────
 const Map<String, Map<String, dynamic>> _priCfg = {
-  'urgent': {'color': Color(0xFFDC2626), 'bg': Color(0xFFFEF2F2), 'label': '🔴 Urgent'},
-  'high':   {'color': Color(0xFFEA580C), 'bg': Color(0xFFFFF7ED), 'label': '🟠 High'},
-  'medium': {'color': Color(0xFFCA8A04), 'bg': Color(0xFFFEFCE8), 'label': '🟡 Medium'},
-  'low':    {'color': Color(0xFF10B981), 'bg': Color(0xFFF0FDF4), 'label': '🟢 Low'},
+  'urgent': {'color': Color(0xFFDC2626), 'bg': Color(0xFFFEF2F2), 'label': '🔴 Urgent', 'desc': 'Sangat mendesak'},
+  'high':   {'color': Color(0xFFEA580C), 'bg': Color(0xFFFFF7ED), 'label': '🟠 High', 'desc': 'Penting'},
+  'medium': {'color': Color(0xFFCA8A04), 'bg': Color(0xFFFEFCE8), 'label': '🟡 Medium', 'desc': 'Sedang'},
+  'low':    {'color': Color(0xFF10B981), 'bg': Color(0xFFF0FDF4), 'label': '🟢 Low', 'desc': 'Santai'},
 };
 
 class PersonalTaskScreen extends StatefulWidget {
@@ -160,113 +160,181 @@ class _PersonalTaskScreenState extends State<PersonalTaskScreen> {
     final pri = _priCfg[task['priority'] ?? 'medium'] ?? _priCfg['medium']!;
     final due = task['due']?.toString() ?? '';
     final dueTime = task['dueTime']?.toString().substring(0, 5) ?? '23:59';
-    final days = due.isNotEmpty ? _daysLeft(due, dueTime) : 0;
+    final title = task['title']?.toString() ?? '';
+    final course = task['course']?.toString() ?? 'Umum';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border(left: BorderSide(color: isDone ? Colors.green : _purple, width: 4)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 3))],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDone ? const Color(0xFFE2E8F0) : Colors.transparent, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 40,
+            spreadRadius: -10,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: pri['bg'], borderRadius: BorderRadius.circular(20)),
-                  child: Text(pri['label'], style: TextStyle(fontSize: 11, color: pri['color'], fontWeight: FontWeight.w700)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Icon Box
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isDone ? const Color(0xFFF1F5F9) : const Color(0xFFF5F3FF),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const Spacer(),
-                if (days < 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(20)),
-                    child: const Text('Terlambat!', style: TextStyle(fontSize: 11, color: Color(0xFFDC2626), fontWeight: FontWeight.w700)),
-                  )
-                else if (days == 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(20)),
-                    child: const Text('Hari ini!', style: TextStyle(fontSize: 11, color: Color(0xFFEA580C), fontWeight: FontWeight.w700)),
-                  )
-                else
-                  Text('$days hari lagi', style: const TextStyle(fontSize: 12, color: Color(0xFF888888))),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              task['title']?.toString() ?? '',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isDone ? const Color(0xFFAAAAAA) : const Color(0xFF1A1A1A),
-                decoration: isDone ? TextDecoration.lineThrough : null,
-                decorationColor: const Color(0xFFAAAAAA),
+                child: Icon(Icons.track_changes, color: isDone ? const Color(0xFF94A3B8) : const Color(0xFF7C3AED), size: 24),
+              ),
+              const SizedBox(width: 16),
+              // Title and Dates
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: isDone ? const Color(0xFF94A3B8) : const Color(0xFF0F172A),
+                        decoration: isDone ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF64748B)),
+                        const SizedBox(width: 4),
+                        Text(due, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.access_time, size: 14, color: Color(0xFF64748B)),
+                        const SizedBox(width: 4),
+                        Text(dueTime, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Priority Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isDone ? const Color(0xFFF1F5F9) : pri['bg'],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isDone ? const Color(0xFFCBD5E1) : (pri['color'] as Color),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      (pri['label'] as String).split(' ').length > 1 ? (pri['label'] as String).split(' ')[1] : pri['label'] as String,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isDone ? const Color(0xFF94A3B8) : pri['color']),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          // Course Tag
+          if (course.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.label_outline, size: 12, color: Color(0xFF475569)),
+                  const SizedBox(width: 6),
+                  Text(course, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+                ],
               ),
             ),
-            if ((task['course'] ?? '').toString().isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(task['course'].toString(), style: const TextStyle(fontSize: 12, color: Color(0xFF888888))),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF999999)),
-                const SizedBox(width: 4),
-                Text('$due · $dueTime', style: const TextStyle(fontSize: 12, color: Color(0xFF888888))),
-                const Spacer(),
-                // Toggle done
-                GestureDetector(
+          if (course.isNotEmpty) const SizedBox(height: 20),
+          
+          // Action Buttons
+          Row(
+            children: [
+              // Toggle Done Button
+              Expanded(
+                child: GestureDetector(
                   onTap: () => _toggleDone(task),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: isDone ? Colors.green.withValues(alpha: 0.1) : _purple.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: isDone ? const Color(0xFFF8FAFC) : const Color(0xFFF5F3FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isDone ? const Color(0xFFE2E8F0) : const Color(0xFFEDE9FE), width: 1.5),
                     ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(isDone ? Icons.check_circle : Icons.radio_button_unchecked, size: 14, color: isDone ? Colors.green : _purple),
-                        const SizedBox(width: 4),
-                        Text(isDone ? 'Selesai' : 'Tandai', style: TextStyle(fontSize: 11, color: isDone ? Colors.green : _purple, fontWeight: FontWeight.w600)),
+                        Icon(isDone ? Icons.refresh : Icons.check_circle_outline, size: 16, color: isDone ? const Color(0xFF64748B) : const Color(0xFF7C3AED)),
+                        const SizedBox(width: 8),
+                        Text(
+                          isDone ? 'Batal Selesai' : 'Tandai Selesai',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isDone ? const Color(0xFF64748B) : const Color(0xFF7C3AED)),
+                        ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        title: const Text('Hapus Tugas?'),
-                        content: Text('Apakah kamu yakin ingin menghapus "${task['title']}"?'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-                          TextButton(onPressed: () => Navigator.pop(context, true), style: TextButton.styleFrom(foregroundColor: Colors.red), child: const Text('Hapus')),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) _delete(task['id'] as int);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFDC2626)),
+              ),
+              const SizedBox(width: 12),
+              // Delete Button
+              GestureDetector(
+                onTap: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      title: const Text('Hapus Tugas?', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                      content: const Text('Tugas mandiri ini akan dihapus permanen dan tidak dapat dipulihkan.', style: TextStyle(color: Color(0xFF64748B))),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700))),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                          child: const Text('Hapus', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) _delete(task['id'] as int);
+                },
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFEE2E2), width: 1.5),
                   ),
+                  child: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 18),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -382,15 +450,15 @@ class _CreatePersonalTaskSheetState extends State<_CreatePersonalTaskSheet> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: _purple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.person_pin_outlined, color: _purple, size: 22),
+                  decoration: BoxDecoration(color: const Color(0xFFF5F3FF), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.track_changes, color: Color(0xFF7C3AED), size: 22),
                 ),
                 const SizedBox(width: 12),
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Tugas Mandiri Baru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
-                    Text('Buat tugas pribadimu sendiri', style: TextStyle(fontSize: 12, color: Color(0xFF888888))),
+                    Text('Buat Tugas Mandiri', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                    Text('Kelola dan jadwalkan tugas pribadimu.', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))),
                   ],
                 ),
               ],
@@ -474,30 +542,49 @@ class _CreatePersonalTaskSheetState extends State<_CreatePersonalTaskSheet> {
             ),
             const SizedBox(height: 18),
 
-            _label('Prioritas'),
+            _label('Tingkat Prioritas'),
             const SizedBox(height: 8),
-            Row(
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 2.5,
               children: _priCfg.entries.map((e) {
                 final isSelected = _priority == e.key;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _priority = e.key),
-                    child: Container(
-                      margin: EdgeInsets.only(right: e.key != 'low' ? 8 : 0),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected ? e.value['bg'] : const Color(0xFFF9F9F9),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected ? (e.value['color'] as Color) : const Color(0xFFE0E0E0),
-                          width: isSelected ? 1.5 : 1,
+                final data = e.value;
+                final labelText = data['label'] as String;
+                final emoji = labelText.split(' ')[0];
+                final text = labelText.split(' ')[1];
+
+                return GestureDetector(
+                  onTap: () => setState(() => _priority = e.key),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? data['bg'] : const Color(0xFFF9F9F9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected ? (data['color'] as Color) : const Color(0xFFE0E0E0),
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(emoji, style: const TextStyle(fontSize: 18)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isSelected ? data['color'] : const Color(0xFF0F172A))),
+                              Text(data['desc'] as String, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                            ],
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        e.value['label'],
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isSelected ? e.value['color'] : const Color(0xFF888888)),
-                      ),
+                      ],
                     ),
                   ),
                 );

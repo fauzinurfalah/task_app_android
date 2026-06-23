@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../services/user_service.dart';
-import 'dashboard_screen.dart';
+import '../services/task_service.dart';
 import 'task_screen.dart';
 import 'calendar_screen.dart';
+import 'dashboard_screen.dart';
 import 'account_settings_screen.dart';
 import 'login_screen.dart';
-
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +16,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedIndex = 3;
+  Map<String, dynamic>? _stats;
   final _userService = UserService();
 
   @override
@@ -23,6 +24,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _userService.addListener(_onUserChanged);
     _userService.loadUser();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final stats = await TaskService().getDashboardStats();
+      if (mounted) setState(() { _stats = stats; });
+    } catch (_) {}
   }
 
   @override
@@ -72,10 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildTopBar(BuildContext context) {
     return Row(
       children: [
-        IconButton(
-          icon: const Icon(Icons.menu, color: Color(0xFFE91E8C)),
-          onPressed: () {},
-        ),
+        const SizedBox(width: 74),
         const Expanded(
           child: Center(
             child: Text(
@@ -153,6 +159,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ── STATS ─────────────────────────────────────────────────────────────────
 
   Widget _buildStatsRow() {
+    final done = _stats?['tugas_selesai']?.toString() ?? '0';
+    final pending = _stats?['tugas_aktif']?.toString() ?? '0';
+
     return Row(
       children: [
         Expanded(
@@ -160,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.check_circle_outline,
             iconBgColor: const Color(0xFFFFEBF2),
             iconColor: const Color(0xFFE91E8C),
-            value: '42',
+            value: done,
             valueColor: const Color(0xFFE91E8C),
             label: 'Tugas Selesai',
           ),
@@ -171,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.assignment_late_outlined,
             iconBgColor: const Color(0xFFFFF0F0),
             iconColor: const Color(0xFFEF5350),
-            value: '12',
+            value: pending,
             valueColor: const Color(0xFF1A1A1A),
             label: 'Tugas Tertunda',
           ),
@@ -252,9 +261,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
             ),
           ),
-          const Text(
-            '54',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A)),
+          Text(
+            _stats?['total_tugas']?.toString() ?? '0',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A)),
           ),
         ],
       ),
@@ -262,6 +271,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProgressCard() {
+    final progNum = (_stats?['progress'] as num?)?.toDouble() ?? 0.0;
+    final progStr = '${progNum.toInt()}%';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -273,25 +285,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
+            children: [
+              const Text(
                 'Progres Semester',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
               ),
               Text(
-                '78%',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFE91E8C)),
+                progStr,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFE91E8C)),
               ),
             ],
           ),
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: const LinearProgressIndicator(
-              value: 0.78,
+            child: LinearProgressIndicator(
+              value: progNum / 100,
               minHeight: 12,
-              backgroundColor: Color(0xFFE0E0E0),
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE91E8C)),
+              backgroundColor: const Color(0xFFE0E0E0),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE91E8C)),
             ),
           ),
           const SizedBox(height: 8),
@@ -437,11 +449,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return GestureDetector(
             onTap: () {
               if (i == 0) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen()));
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => DashboardScreen()));
               } else if (i == 1) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TaskScreen()));
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => TaskScreen()));
               } else if (i == 2) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CalendarScreen()));
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => CalendarScreen()));
               } else if (i == 3) {
                 // already here
               }

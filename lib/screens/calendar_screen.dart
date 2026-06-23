@@ -180,7 +180,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          const SizedBox(width: 26),
+          const SizedBox(width: 74),
           const Expanded(
             child: Center(
               child: Text(

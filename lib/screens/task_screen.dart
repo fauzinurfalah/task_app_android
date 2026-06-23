@@ -10,6 +10,7 @@ import 'profile_screen.dart';
 import 'task_detail_screen.dart';
 import 'join_task_helper.dart';
 import 'personal_task_screen.dart';
+import '../services/personal_task_service.dart';
 
 class TaskScreen extends StatefulWidget {
   const TaskScreen({super.key});
@@ -50,7 +51,21 @@ class _TaskScreenState extends State<TaskScreen> {
       final prefs = await SharedPreferences.getInstance();
       final role = prefs.getString('role') ?? 'mahasiswa';
       final tasks = await TaskService().getTasks();
-      if (mounted) setState(() { _role = role; _apiTasks = tasks; _loading = false; });
+      final pTasks = await PersonalTaskService().getPersonalTasks();
+      
+      final mappedPTasks = pTasks.map((t) => {
+        'id': t['id'],
+        'nama_tugas': t['title'],
+        'nama_matkul': t['course'],
+        'deadline': t['due'],
+        'jam': t['dueTime']?.toString().substring(0, 5) ?? '23:59',
+        'status': t['status'] == 'completed' ? 'Selesai' : 'Belum Selesai',
+        'is_personal': true,
+      }).toList();
+
+      final allTasks = [...tasks, ...mappedPTasks];
+
+      if (mounted) setState(() { _role = role; _apiTasks = allTasks; _loading = false; });
     } catch (_) {
       if (mounted) setState(() { _loading = false; });
     }
@@ -111,7 +126,7 @@ class _TaskScreenState extends State<TaskScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          const SizedBox(width: 26), // balance right side
+          const SizedBox(width: 74), // balance right side (26+12+36)
           const Expanded(
             child: Center(
               child: Text(
@@ -189,7 +204,7 @@ class _TaskScreenState extends State<TaskScreen> {
       final status = t['status']?.toString() ?? 'pending';
       final isPastDeadline = now.isAfter(deadlineDT);
 
-      if (status == 'submitted' || status == 'late' || status == 'graded' || (status == 'pending' && isPastDeadline)) {
+      if (status == 'submitted' || status == 'late' || status == 'graded' || (status == 'pending' && isPastDeadline) || status == 'Selesai') {
         doneTasks.add(Map<String, dynamic>.from(t));
       } else {
         activeTasks.add(Map<String, dynamic>.from(t));
@@ -274,11 +289,13 @@ class _TaskScreenState extends State<TaskScreen> {
 
     return GestureDetector(
       onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => TaskDetailScreen(task: Map<String, dynamic>.from(task))),
-        );
-        if (result == true) _loadTasks();
+        if (task['is_personal'] == true) {
+          final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalTaskScreen()));
+          if (result == true) _loadTasks();
+        } else {
+          final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailScreen(task: Map<String, dynamic>.from(task))));
+          if (result == true) _loadTasks();
+        }
       },
       child: Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -452,10 +469,13 @@ class _TaskScreenState extends State<TaskScreen> {
     bool isDone = task['status'] == 'submitted' || task['status'] == 'graded' || task['status'] == 'done';
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => TaskDetailScreen(task: Map<String, dynamic>.from(task))),
-      ),
+      onTap: () {
+        if (task['is_personal'] == true) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalTaskScreen()));
+        } else {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailScreen(task: Map<String, dynamic>.from(task))));
+        }
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),

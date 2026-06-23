@@ -5,11 +5,14 @@ import '../services/task_service.dart';
 import '../services/user_service.dart';
 import 'login_screen.dart';
 import 'task_screen.dart';
+import 'task_detail_screen.dart';
 import 'add_task_screen.dart';
 import 'calendar_screen.dart';
 
 import 'profile_screen.dart';
 import 'join_task_helper.dart';
+import '../services/personal_task_service.dart';
+import 'personal_task_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -66,7 +69,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final stats = await TaskService().getDashboardStats();
       final tasks = await TaskService().getTasks();
-      if (mounted) setState(() { _tasks = tasks; _dashboardStats = stats; _loadingTasks = false; });
+      final pTasks = await PersonalTaskService().getPersonalTasks();
+      
+      final mappedPTasks = pTasks.map((t) => {
+        'id': t['id'],
+        'nama_tugas': t['title'],
+        'nama_matkul': t['course'],
+        'deadline': t['due'],
+        'jam': t['dueTime']?.toString().substring(0, 5) ?? '23:59',
+        'status': t['status'] == 'completed' ? 'Selesai' : 'Belum Selesai',
+        'is_personal': true,
+      }).toList();
+
+      final allTasks = [...tasks, ...mappedPTasks];
+
+      if (mounted) setState(() { _tasks = allTasks; _dashboardStats = stats; _loadingTasks = false; });
     } catch (_) {
       if (mounted) setState(() { _loadingTasks = false; });
     }
@@ -142,6 +159,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTopBar() {
     return Row(
       children: [
+        const SizedBox(width: 74),
         const Expanded(
           child: Center(
             child: Text(
@@ -432,13 +450,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Card menonjol (pertama) — pink border
   Widget _buildHighlightTaskCard(Map task) {
     final tags = _parseTags(task['tags']);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFECF5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF8BBD9), width: 1.5),
-      ),
+    return GestureDetector(
+      onTap: () {
+        if (task['is_personal'] == true) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalTaskScreen()));
+        } else if (task['id_task'] != null || task['id'] != null) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailScreen(task: Map<String, dynamic>.from(task))));
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFECF5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFF8BBD9), width: 1.5),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -522,7 +548,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
         ],
       ),
-    );
+    ));
   }
 
   // Card normal (kedua dan ketiga)
@@ -532,11 +558,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Try to detect if there's a subject in extra field
     final String? subject = task['subject'] as String?;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+    return GestureDetector(
+      onTap: () {
+        if (task['is_personal'] == true) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalTaskScreen()));
+        } else if (task['id_task'] != null || task['id'] != null) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailScreen(task: Map<String, dynamic>.from(task))));
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -620,7 +654,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildTag(String label, {IconData? icon}) {
