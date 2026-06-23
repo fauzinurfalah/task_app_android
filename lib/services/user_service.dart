@@ -189,6 +189,7 @@ class UserService extends ChangeNotifier {
     await prefs.remove('name');
     await prefs.remove('role');
     await prefs.remove('email');
+    await prefs.remove('boot_session_id'); // Hapus session ID agar tidak dipakai setelah logout
     clear();
   }
 

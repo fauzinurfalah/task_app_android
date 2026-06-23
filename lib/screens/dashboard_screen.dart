@@ -5,6 +5,7 @@ import '../services/task_service.dart';
 import '../services/user_service.dart';
 import 'login_screen.dart';
 import 'task_screen.dart';
+import 'notification_screen.dart';
 import 'task_detail_screen.dart';
 import 'add_task_screen.dart';
 import 'calendar_screen.dart';
@@ -173,32 +174,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
-        Stack(
-          children: [
-            const Icon(Icons.notifications_outlined,
-                color: Color(0xFF333333), size: 26),
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE91E8C),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 12),
         GestureDetector(
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            MaterialPageRoute(builder: (_) => const NotificationScreen()),
           ),
-          child: _buildAvatarWidget(),
+          child: Stack(
+            children: [
+              const Icon(Icons.notifications_outlined,
+                  color: Color(0xFF333333), size: 26),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE91E8C),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: 12),
+        _buildAvatarWidget(),
       ],
     );
   }
@@ -427,9 +428,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    final displayTasks = _tasks.isNotEmpty
-        ? _tasks.take(3).toList()
-        : _dummyTasks;
+    if (_tasks.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            children: [
+              Icon(Icons.assignment_turned_in_outlined, size: 64, color: Colors.black.withOpacity(0.1)),
+              const SizedBox(height: 16),
+              const Text('Belum ada tugas', style: TextStyle(fontSize: 16, color: Colors.black54)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final displayTasks = _tasks.take(3).toList();
 
     return Column(
       children: List.generate(displayTasks.length, (i) {

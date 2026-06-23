@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 
 class AuthService {
+  static const MethodChannel _channel = MethodChannel('com.example.task_app/boot');
 
   final String baseUrl = "http://3.104.52.205/api";
 
@@ -35,6 +37,11 @@ class AuthService {
       await prefs.setString('token', data['token']);
       await prefs.setString('name', data['user']?['name'] ?? data['name'] ?? '');
       await prefs.setString('role', data['user']?['role'] ?? 'mahasiswa');
+
+      try {
+        final bootSessionId = await _channel.invokeMethod('getBootSessionId');
+        await prefs.setString('boot_session_id', bootSessionId);
+      } catch (_) {}
 
       return true;
     }
@@ -74,6 +81,11 @@ class AuthService {
       await prefs.setString('token', data['token']);
       await prefs.setString('name', data['user']?['name'] ?? data['name'] ?? name);
       await prefs.setString('role', data['user']?['role'] ?? role);
+
+      try {
+        final bootSessionId = await _channel.invokeMethod('getBootSessionId');
+        await prefs.setString('boot_session_id', bootSessionId);
+      } catch (_) {}
 
       return true;
     }
@@ -134,6 +146,31 @@ class AuthService {
       };
     } catch (_) {
       return {'success': false, 'message': 'Gagal terhubung ke server.'};
+    }
+  }
+
+  /// Checks if the session is still valid based on the boot session ID.
+  Future<bool> isSessionValid() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null || token.isEmpty) return false;
+
+      final savedBootId = prefs.getString('boot_session_id');
+      if (savedBootId != null) {
+        final currentBootId = await _channel.invokeMethod('getBootSessionId');
+        // If boot IDs do not match, the device has rebooted, so session is invalid
+        if (savedBootId != currentBootId) {
+          await prefs.remove('token');
+          await prefs.remove('boot_session_id');
+          return false;
+        }
+      }
+      return true;
+    } catch (_) {
+      // Fallback if platform channel fails
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('token') != null;
     }
   }
 }

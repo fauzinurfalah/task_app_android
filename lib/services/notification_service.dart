@@ -5,6 +5,23 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+// ─── Local Storage Helper ───────────────────────────────────────────────────
+Future<void> _saveNotificationToLocal(RemoteMessage message) async {
+  if (message.notification == null) return;
+  final prefs = await SharedPreferences.getInstance();
+  final list = prefs.getStringList('local_notifications') ?? [];
+  final notif = {
+    'title': message.notification!.title ?? 'Notifikasi',
+    'body': message.notification!.body ?? '',
+    'timestamp': DateTime.now().toIso8601String(),
+    'read': false,
+  };
+  list.insert(0, jsonEncode(notif)); // Add to top
+  // Keep only the last 50 notifications
+  if (list.length > 50) list.removeLast();
+  await prefs.setStringList('local_notifications', list);
+}
+
 // ─── Notification Channel (Android) ─────────────────────────────────────────
 const _androidChannel = AndroidNotificationChannel(
   'deadline_reminders',        // Channel ID — harus sama dengan yang di FCM payload
@@ -21,6 +38,7 @@ final _localNotif = FlutterLocalNotificationsPlugin();
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('[FCM Background] ${message.notification?.title}: ${message.notification?.body}');
+  await _saveNotificationToLocal(message);
   // Background messages dari FCM data-only perlu ditampilkan manual:
   if (message.notification == null && message.data.isNotEmpty) {
     _showLocalNotification(message);
@@ -99,6 +117,7 @@ class NotificationService {
     // 6. Handler saat notifikasi diterima di FOREGROUND — tampilkan via local notif
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('[FCM Foreground] ${message.notification?.title}: ${message.notification?.body}');
+      _saveNotificationToLocal(message);
       _showLocalNotification(message);
     });
 

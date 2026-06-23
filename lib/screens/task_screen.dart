@@ -10,6 +10,7 @@ import 'profile_screen.dart';
 import 'task_detail_screen.dart';
 import 'join_task_helper.dart';
 import 'personal_task_screen.dart';
+import 'notification_screen.dart';
 import '../services/personal_task_service.dart';
 
 class TaskScreen extends StatefulWidget {
@@ -140,31 +141,32 @@ class _TaskScreenState extends State<TaskScreen> {
               ),
             ),
           ),
-          Stack(
-            children: [
-              const Icon(Icons.notifications_outlined,
-                  color: Color(0xFF333333), size: 26),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: _pink,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              MaterialPageRoute(builder: (_) => const NotificationScreen()),
             ),
-            child: Builder(builder: (ctx) {
+            child: Stack(
+              children: [
+                const Icon(Icons.notifications_outlined,
+                    color: Color(0xFF333333), size: 26),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: _pink,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Builder(builder: (ctx) {
               final photoUrl = _userService.photoUrl;
               return CircleAvatar(
                 radius: 18,

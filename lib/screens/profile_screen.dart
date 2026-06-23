@@ -6,6 +6,7 @@ import 'calendar_screen.dart';
 import 'dashboard_screen.dart';
 import 'account_settings_screen.dart';
 import 'login_screen.dart';
+import 'notification_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -95,7 +96,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-        const Icon(Icons.notifications_outlined, color: Color(0xFF333333), size: 26),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const NotificationScreen()),
+          ),
+          child: Stack(
+            children: [
+              const Icon(Icons.notifications_outlined, color: Color(0xFF333333), size: 26),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE91E8C),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(width: 12),
         _buildAvatarWidget(radius: 18),
       ],
@@ -348,9 +371,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
         const SizedBox(height: 12),
-        _buildSettingItem(icon: Icons.notifications_none, title: 'Notifikasi', onTap: () {}),
-        const SizedBox(height: 12),
-        _buildSettingItem(icon: Icons.palette_outlined, title: 'Tema', onTap: () {}),
+        _buildSettingItem(
+          icon: Icons.notifications_none,
+          title: 'Notifikasi',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificationScreen()),
+            );
+          },
+        ),
         const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,

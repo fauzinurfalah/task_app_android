@@ -7,6 +7,7 @@ import 'task_screen.dart';
 
 import 'profile_screen.dart';
 import 'join_task_helper.dart';
+import 'notification_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -194,31 +195,32 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             ),
           ),
-          Stack(
-            children: [
-              const Icon(Icons.notifications_outlined,
-                  color: Color(0xFF333333), size: 26),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: _pink,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              MaterialPageRoute(builder: (_) => const NotificationScreen()),
             ),
-            child: Builder(builder: (ctx) {
+            child: Stack(
+              children: [
+                const Icon(Icons.notifications_outlined,
+                    color: Color(0xFF333333), size: 26),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: _pink,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Builder(builder: (ctx) {
               final photoUrl = _userService.photoUrl;
               return CircleAvatar(
                 radius: 18,

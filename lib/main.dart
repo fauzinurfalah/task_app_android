@@ -2,7 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'services/notification_service.dart';
+import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,17 +14,21 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Cek apakah sesi masih valid (bertahan dari app kill, tapi logout jika reboot)
+  final bool isLoggedIn = await AuthService().isSessionValid();
+
   // Inisialisasi FCM: daftarkan background handler & minta izin notifikasi.
   // Dipanggil di sini agar token selalu terdaftar ke server setiap kali
   // aplikasi dibuka, tanpa menunggu proses login ulang.
   await NotificationService().initialize();
 
-  runApp(const MyApp());
+  runApp(MyApp(isLoggedIn: isLoggedIn));
 }
 
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+  const MyApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +40,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: const LoginScreen(),
+      home: isLoggedIn ? const DashboardScreen() : const LoginScreen(),
     );
   }
 }
